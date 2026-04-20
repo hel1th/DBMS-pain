@@ -1,0 +1,6 @@
+#ifndef DBMS_PAIN_PAGEMANAGER_H
+#define DBMS_PAIN_PAGEMANAGER_H
+
+class PageManager {};
+
+#endif // DBMS_PAIN_PAGEMANAGER_H
