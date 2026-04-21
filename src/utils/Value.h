@@ -2,14 +2,12 @@
 #define DBMS_PAIN_VALUE_H
 
 #include <optional>
-#include <string>
 #include <variant>
+#include <string>
 
-
-// Value.h — этот тип используется везде
+// NULL = nullopt
+// INT  = variant содержит int
+// STR  = variant содержит string
 using Value = std::optional<std::variant<int, std::string>>;
-// nullptr/nullopt = NULL
-// variant<int>    = целое
-// variant<string> = строка
 
 #endif // DBMS_PAIN_VALUE_H
