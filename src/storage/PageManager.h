@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <fstream>
 
 constexpr int PAGE_SIZE = 4096;
 using Page = std::array<char, PAGE_SIZE>;
@@ -29,10 +30,13 @@ public:
   // Сколько страниц в файле
   int32_t page_count() const;
 
+  int32_t free_list_head() const;
+
 private:
   std::string file_path_;
   std::fstream file_;
   int32_t page_count_;
+  int32_t free_list_head_;
 
   void init_file();   // создать файл если не существует
   void load_header(); // прочитать page_count из заголовка
