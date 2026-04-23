@@ -11,13 +11,13 @@
 using Value = std::optional<std::variant<int, std::string>>;
 
 
-inline bool isNull(const Value& v) { return !v.has_value(); }
-inline bool isInt(const Value& v) { return v && std::holds_alternative<int>(*v); }
-inline bool isString(const Value& v) { return v && std::holds_alternative<std::string>(*v); }
-
-
-inline int getInt(const Value& v) { return std::get<int>(*v); }
-inline std::string getString(const Value& v) { return std::get<std::string>(*v); }
+namespace val {
+    inline bool isNull(const Value& v) { return !v.has_value(); }
+    inline bool isInt(const Value& v) { return v && std::holds_alternative<int>(*v); }
+    inline bool isString(const Value& v) { return v && std::holds_alternative<std::string>(*v); }
+    inline int getInt(const Value& v) { return std::get<int>(*v); }
+    inline std::string getString(const Value& v) { return std::get<std::string>(*v); }
+} // namespace val
 
 // cmp of two Value (for WHERE)
 // NULL != NULL, NULL is not comparable, always returns false
@@ -26,11 +26,11 @@ inline bool valueLess(const Value& a, const Value& b) {
     if (!a || !b)
         return false;
 
-    if (isInt(a) && isInt(b))
-        return getInt(a) < getInt(b);
+    if (val::isInt(a) && val::isInt(b))
+        return val::getInt(a) < val::getInt(b);
 
-    if (isString(a) && isString(b))
-        return getString(a) < getString(b);
+    if (val::isString(a) && val::isString(b))
+        return val::getString(a) < val::getString(b);
 
 
     return false;
