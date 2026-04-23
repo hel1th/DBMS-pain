@@ -25,6 +25,10 @@ add_executable(DBMS_pain
         src/storage/RecordManager.h
         src/engine/Schema.cpp
         src/engine/Schema.h
+        src/engine/Table.cpp
+        src/engine/Table.h
+        src/engine/Database.cpp
+        src/engine/Database.h
 )
 
 target_include_directories(DBMS_pain PRIVATE src)
