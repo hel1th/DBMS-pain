@@ -1,0 +1,57 @@
+#ifndef DBMS_PAIN_RECORDMANAGER_H
+#define DBMS_PAIN_RECORDMANAGER_H
+
+#include <functional>
+
+#include "PageManager.h"
+#include "Serializer.h"
+#include "engine/Schema.h"
+#include "utils/Value.h"
+
+// Идентификатор записи = номер страницы + номер слота на странице
+struct RecordId {
+    page_id_t page_id;
+    int16_t   slot_id;
+
+    bool operator==(const RecordId& o) const {
+        return page_id == o.page_id && slot_id == o.slot_id;
+    }
+};
+
+class RecordManager {
+public:
+    RecordManager(PageManager& pm, const Schema& schema);
+
+    // Вставить запись, вернуть её RecordId
+    RecordId insert(const std::vector<Value>& record);
+
+    // Прочитать запись по RecordId
+    std::vector<Value> fetch(RecordId rid);
+
+    // Обновить запись
+    void update(RecordId rid, const std::vector<Value>& record);
+
+    // Удалить запись (пометить слот как свободный)
+    void remove(RecordId rid);
+
+    // Итерация по всем записям (для full scan)
+    // Вызывает callback для каждой живой записи
+    void scan(std::function<void(RecordId, const std::vector<Value>&)> cb);
+
+private:
+    PageManager& pm_;
+    const Schema& schema_;
+
+    // Найти страницу с местом для записи нужного размера
+    page_id_t find_page_with_space(size_t needed_bytes);
+
+    // Работа со слотами внутри страницы
+    int16_t  get_slot_count(const Page& page);
+    int16_t  get_free_offset(const Page& page);
+    void     write_slot(Page& page, int16_t slot, int16_t offset, int16_t size);
+    int16_t  get_slot_offset(const Page& page, int16_t slot);
+    int16_t  get_slot_size(const Page& page, int16_t slot);
+};
+
+
+#endif //DBMS_PAIN_RECORDMANAGER_H

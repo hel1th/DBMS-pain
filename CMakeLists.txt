@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.1)
 project(DBMS_pain)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 
 add_executable(DBMS_pain
         src/main.cpp
@@ -21,7 +21,13 @@ add_executable(DBMS_pain
         src/catalog/SystemCatalog.h
         src/utils/Value.h
         src/utils/Error.h
+        src/storage/RecordManager.cpp
+        src/storage/RecordManager.h
+        src/engine/Schema.cpp
+        src/engine/Schema.h
 )
+
+target_include_directories(DBMS_pain PRIVATE src)
 
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
