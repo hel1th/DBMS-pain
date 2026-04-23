@@ -1,8 +1,15 @@
-#include <functional>
+#ifndef DBMS_PAIN_BSTARPLUSTREE_H
+#define DBMS_PAIN_BSTARPLUSTREE_H
+
+#include <iterator>
+#include <utility>
+#include <vector>
+#include <boost/container/static_vector.hpp>
+#include <concepts>
+#include <stack>
+#include <pp_allocator.h>
+#include <associativeContainer.h>
 #include <initializer_list>
-#include "associativeContainer.h"
-#ifndef DBMS_PAIN_BPLUSTREE_H
-#define DBMS_PAIN_BPLUSTREE_H
 
 template <typename tkey, typename tvalue, comparator<tkey> compare = std::less<tkey>, std::size_t t = 5>
 class BStarPlusTree final : private compare
@@ -122,7 +129,7 @@ public:
         }
 
         size_t current_node_keys_count() const noexcept {
-            return this->_node._data.size();
+            return this->_node->_data.size();
         }
         size_t index() const noexcept {
             return this->_index;
@@ -158,14 +165,14 @@ public:
         self operator++(int);
 
         bool operator==(const self& other) const noexcept {
-            return (this->_node == other._node && this->_index == other._index)
+            return (this->_node == other._node && this->_index == other._index);
         };
         bool operator!=(const self& other) const noexcept {
-            return !(this* == other);
+            return !(*this == other);
         }
 
         size_t current_node_keys_count() const noexcept {
-            return this->_node._data.size(); // он меня не понял по-моему
+            return this->_node->_data.size(); // он меня не понял по-моему
         }
 
         size_t index() const noexcept {
@@ -231,7 +238,7 @@ public:
         while (!curr->_is_terminated) {
             bsptree_node_middle * node = static_cast<bsptree_node_middle*>(curr);
             size_t i = 0;
-            while (i < node->_keys.size() && !compare_keys(key, node._keys[i])) {
+            while (i < node->_keys.size() && !compare_keys(key, node->_keys[i])) {
                 ++i;
             }
             curr = node->_pointers[i];
@@ -325,4 +332,4 @@ public:
 
 
 
-#endif //DBMS_PAIN_BPLUSTREE_H
+#endif //DBMS_PAIN_BSTARPLUSTREE_H

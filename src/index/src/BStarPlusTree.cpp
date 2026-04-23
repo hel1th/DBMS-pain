@@ -1,3 +1,3 @@
-#include "BStarPlusTree.h"
+#include "../include/BStarPlusTree.h"
 
 // перезвоните позже, линия занята
