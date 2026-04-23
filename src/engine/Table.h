@@ -13,34 +13,34 @@
 class Table {
 public:
     // Открыть существующую таблицу
-    Table(const std::string& db_path, const std::string& table_name);
+    Table(const std::string& dbPath, const std::string& tableName);
 
     // Создать новую таблицу
-    static Table create(const std::string& db_path, const Schema& schema);
+    static Table create(const std::string& dbPath, const Schema& schema);
 
     // Удалить таблицу (файлы с диска)
-    static void drop(const std::string& db_path, const std::string& table_name);
+    static void drop(const std::string& dbPath, const std::string& tableName);
 
     const Schema& schema() const { return schema_; }
 
     // DML (data manipulation language)
-    RecordId insert(const std::vector<Value>& record);
+    RecordID insert(const std::vector<Value>& record);
 
-    void scan(std::function<void(RecordId, const std::vector<Value>&)> cb);
+    void scan(std::function<void(RecordID, const std::vector<Value>&)> cb);
 
-    // Поиск по индексу — вернёт RecordId или бросит если нет индекса
-    RecordId find_by_index(const std::string& col_name, const Value& key);
+    // Поиск по индексу — вернёт RecordID или бросит если нет индекса
+    RecordID findByIndex(const std::string& colName, const Value& key);
 
-    void update(RecordId rid, const std::vector<Value>& new_record);
-    void remove(RecordId rid);
+    void update(RecordID rID, const std::vector<Value>& newRecord);
+    void remove(RecordID rID);
 
 private:
     Schema schema_;
-    PageManager page_manager_;
-    RecordManager record_manager_;
-    IndexManager index_manager_;
+    PageManager pageManager_;
+    RecordManager recordManager_;
+    IndexManager indexManager_;
 
-    std::string db_path_;
+    std::string dbPath_;
 };
 
 
