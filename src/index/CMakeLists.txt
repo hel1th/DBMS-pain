@@ -1,14 +1,21 @@
-cmake_minimum_required(VERSION 3.10)
-project(bsptree_lib)
+cmake_minimum_required(VERSION 3.16)
+project(BStarPlusTree LANGUAGES CXX)
 
-add_library(bsptree
-    BStarPlusTree.cpp
-    IndexManager.cpp
-)
+set(CMAKE_CXX_COMPILER "g++")  # или "cl.exe" для MSVC
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-target_include_directories(bsptree PUBLIC .)
+# Добавляем исходники
+file(GLOB SOURCES "src/*.cpp")
 
-target_link_libraries(bsptree PUBLIC sys_prog_assctv_cntnr)
+# Сначала создаём цель (исполняемый файл)
+add_executable(${PROJECT_NAME} ${SOURCES})
 
+# Теперь можно добавлять include-директории для этой цели
+target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-// тут нет рабочей сборки, а должна быть
+# Поиск Boost (static_vector header-only)
+find_package(Boost REQUIRED)
+if(Boost_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+endif()
