@@ -1,11 +1,9 @@
-// src/parser/AST.h
-#pragma once
-
 #include <memory>
 #include <string>
 #include <vector>
-// #include "engine/Schema.h" // ColType
-#include "utils/Value.h" // Value + is_null, is_int, get_int и т.д.
+
+#include "engine/Schema.h" // ColType
+#include "utils/Value.h"
 
 
 // Виды узлов
@@ -59,10 +57,10 @@ public:
     [[nodiscard]] std::string toString() const override;
 
     // используем функции из Value.h — не дублируем
-    bool isNull() const { return is_null(value); }
-    bool isInt() const { return is_int(value); }
-    bool isString() const { return is_string(value); }
-    int asInt() const { return get_int(value); }
+    bool isNull() const { return val::isNull(value); }
+    bool isInt() const { return val::isInt(value); }
+    bool isString() const { return val::isString(value); }
+    int asInt() const { return val::getInt(value); }
     const std::string& asString() const { return std::get<std::string>(*value); }
 };
 
