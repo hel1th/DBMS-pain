@@ -12,25 +12,24 @@
 #include <initializer_list>
 
 template <typename tkey, typename tvalue, comparator<tkey> compare = std::less<tkey>, std::size_t t = 5>
-class BStarPlusTree final : private compare
-{
-    public:
+class BStarPlusTree final : private compare {
+public:
 
     using treeDataType = std::pair<tkey, tvalue>;
     using treeDataTypeConst = std::pair<const tkey, tvalue>;
     using valueType = treeDataTypeConst;
 
-    private:
+private:
 
     static constexpr const size_t minimumKeysInNode = 2 * t - 1;
     static constexpr const size_t maximumKeysInNode = 3 * t - 1;
 
     // region comparators declaration
 
-    inline bool compare_keys(const tkey& lhs, const tkey& rhs) const {
-        return compare::operator()(lhs, rhs); // а так можно?
+    inline bool CompareKeys(const tkey& lhs, const tkey& rhs) const {
+        return compare::operator()(lhs, rhs);
     }
-    inline bool compare_pairs(const treeDataType& lhs, const treeDataType& rhs) const {
+    inline bool ComparePairs(const treeDataType& lhs, const treeDataType& rhs) const {
         return compare::operator()(lhs, rhs);
     }
 
@@ -40,7 +39,9 @@ class BStarPlusTree final : private compare
     {
         bool _is_terminated;
 
-        BSPNodeBase() noexcept;
+        BSPNodeBase() noexcept {
+            _is_terminated = false; // а чо писать то?
+        }
         virtual ~BSPNodeBase() =default;
     };
 
@@ -62,15 +63,20 @@ class BStarPlusTree final : private compare
     BSPNodeBase* _root;
     size_t _size;
 
-    pp_allocator<valueType> GetAllocator() const noexcept; // мб она нам и не нада
+    pp_allocator<valueType> GetAllocator() const noexcept {
+        return _allocator;
+    } // мб она нам и не нада
 
 public:
 
     // region constructors declaration
 
-    explicit BStarPlusTree(const compare& cmp = compare(), pp_allocator<valueType> = pp_allocator<valueType>());
+    explicit BStarPlusTree(const compare& cmp = compare(), pp_allocator<valueType> = pp_allocator<valueType>()) {// а чо делать с компаратором? куда его?
+        _root = nullptr;
+        _size = 0;
+    }
 
-    explicit BStarPlusTree(pp_allocator<valueType> alloc, const compare& comp = compare());
+    explicit BStarPlusTree(pp_allocator<valueType> alloc, const compare& cmp = compare()) : BStarPlusTree(cmp, alloc) {}
 
     template<input_iterator_for_pair<tkey, tvalue> iterator>
     explicit BStarPlusTree(iterator begin, iterator end, const compare& cmp = compare(), pp_allocator<valueType> = pp_allocator<valueType>());
@@ -81,15 +87,27 @@ public:
 
     // region five declaration
 
-    BStarPlusTree(const BStarPlusTree& other);
+    BStarPlusTree(const BStarPlusTree& other) {
+        this->_root = other._root;
+        this->_allocator = other._allocator;
+        this->_size = other._size;
+        // а дальше скопировать узлы?
+    }
 
-    BStarPlusTree(BStarPlusTree&& other) noexcept;
+    BStarPlusTree(BStarPlusTree&& other) noexcept {
+        this->_root = other._root;
+        this->_allocator = other._allocator;
+        this->_size = other._size;
+        // а дальше переместить узлы?
+    }
 
     BStarPlusTree& operator=(const BStarPlusTree& other);
 
     BStarPlusTree& operator=(BStarPlusTree&& other) noexcept;
 
-    ~BStarPlusTree() noexcept;
+    ~BStarPlusTree() noexcept {
+        clear(); // и чето еще
+    }
 
     // endregion five declaration
 
@@ -111,14 +129,30 @@ public:
         using DifferenceType = ptrdiff_t;
         using self = BSPIterator;
 
-        friend class BSP_tree;
+        friend class BStarPlusTree;
         friend class BSPConstIterator;
 
-        reference operator*() const noexcept;
-        pointer operator->() const noexcept;
+        reference operator*() const noexcept {
+            return _node->_data[_index];
+        }
+        pointer operator->() const noexcept {
+            return &_node->_data[_index]; // мб хуйня
+        }
 
-        self& operator++();
-        self operator++(int);
+        self& operator++() {
+            if (_index == _node->_data.size()) {
+                _node = _node->_next;
+                _index = 0;
+            } else {
+                ++_index;
+            }
+            return BSPIterator(_node, _index);
+        }
+        self operator++(int) {
+            self temp = *this;
+            ++*this;
+            return temp;
+        }
 
         bool operator==(const self& other) const noexcept {
             return this->_node == other._node && this->_index == other._index;
@@ -134,7 +168,10 @@ public:
             return this->_index;
         };
 
-        explicit BSPIterator(BSPNodeTerm* node = nullptr, size_t index = 0);
+        explicit BSPIterator(BSPNodeTerm* node = nullptr, size_t index = 0) {
+            this->_node = node;
+            this->_index = index;
+        }
 
     };
 
@@ -155,13 +192,32 @@ public:
         friend class BStarPlusTree;
         friend class BSPIterator;
 
-        BSPConstIterator(const BSPIterator& it) noexcept;
+        BSPConstIterator(const BSPIterator& it) noexcept {
+            this->_index = it._index;
+            this->_node = it._node;
+        }
 
-        reference operator*() const noexcept;
-        pointer operator->() const noexcept;
+        reference operator*() const noexcept {
+            return _node->_data[_index];
+        }
+        pointer operator->() const noexcept {
+            return &_node->_data[_index];
+        }
 
-        self& operator++();
-        self operator++(int);
+        self& operator++() {
+            if (_index == _node->_data.size()) {
+                _node = _node->_next;
+                _index = 0;
+            } else {
+                ++_index;
+            }
+            return BSPConstIterator(_node, _index);
+        }
+        self operator++(int) { // чета хня какая-то
+            self temp = *this;
+            ++*this;
+            return temp;
+        }
 
         bool operator==(const self& other) const noexcept {
             return (this->_node == other._node && this->_index == other._index);
@@ -171,18 +227,18 @@ public:
         }
 
         size_t CurrentNodeKeysCount() const noexcept {
-            return this->_node->_data.size(); // он меня не понял по-моему
+            return _node->_data.size();
         }
 
         size_t index() const noexcept {
             return this->_index;
         }
 
-        explicit BSPConstIterator(const BSPNodeTerm* node = nullptr, size_t index = 0);
+        explicit BSPConstIterator(const BSPNodeTerm* node = nullptr, size_t index = 0) : BSPConstIterator(BSPIterator(node, index)) {}
     };
 
-    friend class btree_iterator;
-    friend class btree_const_iterator;
+    friend class BSPIterator;
+    friend class BSPConstIterator;
 
     // endregion iterators declaration
 
@@ -200,19 +256,46 @@ public:
     tvalue& operator[](const tkey& key);
     tvalue& operator[](tkey&& key);
 
-    // endregion element access declaration
+    // endregion element access declaration (begin, end - DONE)
     // region iterator begins declaration
 
-    BSPIterator begin();
+    BSPIterator begin()
+    {
+        BSPNodeMiddle * node = this->_root;
+        while (!node->_is_terminated) {
+            node = node->_pointers[0];
+        }
+        node = static_cast<BSPNodeTerm*>(node);
+        return BSPIterator(node->_keys, 0);
+    }
     BSPIterator end() {
         return BSPIterator(nullptr, 0);
     };
 
-    BSPConstIterator begin() const;
-    BSPConstIterator end() const;
+    BSPConstIterator begin() const {
+        BSPNodeMiddle * node = this->_root;
+        while (!node->_is_terminated) {
+            node = node->_pointers[0];
+        }
+        node = static_cast<BSPNodeTerm*>(node);
+        return  BSPConstIterator(node->_keys, 0);
+    }
 
-    BSPConstIterator cbegin() const;
-    BSPConstIterator cend() const;
+    BSPConstIterator end() const {
+        return BSPConstIterator(nullptr, 0);
+    }
+
+    BSPConstIterator cbegin() const { // а зач он если есть методы выше?
+        BSPNodeMiddle * node = this->_root;
+        while (!node->_is_terminated) {
+            node = node->_pointers[0];
+        }
+        node = static_cast<BSPNodeTerm*>(node);
+        return  BSPConstIterator(node->_keys, 0);
+    }
+    BSPConstIterator cend() const {
+        return BSPConstIterator(nullptr, 0);
+    }
 
     // endregion iterator begins declaration
 
@@ -235,7 +318,7 @@ public:
         }
         BSPNodeBase * curr = this->_root;
         while (!curr->_is_terminated) {
-            BSPNodeMiddle * node = static_cast<BSPNodeMiddle*>(curr);
+            auto * node = static_cast<BSPNodeMiddle*>(curr);
             size_t i = 0;
             while (i < node->_keys.size() && !compare_keys(key, node->_keys[i])) {
                 ++i;
@@ -243,14 +326,14 @@ public:
             curr = node->_pointers[i];
         }
 
-        BSPNodeTerm * node_list = static_cast<BSPNodeTerm*>(curr);
+        auto * node_list = static_cast<BSPNodeTerm*>(curr);
         // бинарный поиск нужного ключа в узле
         int left = 0;
         int right = node_list->_data.size() - 1;
 
         while (left < right) {
-            size_t mid = (left + right) / 2;
-            int cmp = compare_keys(node_list->_data[mid], key); // возможно сравнение не в том порядке
+            int mid = (left + right) / 2;
+            const int cmp = compare_keys(node_list->_data[mid], key); // возможно сравнение не в том порядке
             if (cmp == 0) { 
                 return bsptree_iterator(node_list, mid);
             }
@@ -267,11 +350,47 @@ public:
         return static_cast<BSPConstIterator>(find(key));
     } // то же самое, что и для штуки выше, но вернуть другой итератор
 
-    BSPIterator lower_bound(const tkey& key);
-    BSPConstIterator lower_bound(const tkey& key) const;
+    BSPIterator lower_bound(const tkey& key) {
+        if (this->_root == nullptr) {};
+        BSPIterator iter = begin();
+        const int cmp = CompareKeys(iter._node->_keys, key);
+        while (cmp < 0) {
+            ++iter;
+            cmp = CompareKeys(iter._node->_keys, key);
+        }
+        return iter;
+    }
+    BSPConstIterator lower_bound(const tkey& key) const {
+        if (this->_root == nullptr) {};
+        BSPConstIterator iter = begin();
+        const int cmp = CompareKeys(iter._node->_keys, key);
+        while (cmp < 0) {
+            ++iter;
+            cmp = CompareKeys(iter._node->_keys, key);
+        }
+        return  iter;
+    }
 
-    BSPIterator upper_bound(const tkey& key);
-    BSPConstIterator upper_bound(const tkey& key) const;
+    BSPIterator upper_bound(const tkey& key) {
+        if (this->_root == nullptr) {};
+        BSPIterator iter = begin();
+        const int cmp = CompareKeys(iter._node->_data[iter._index], key);
+        while (cmp <= 0) {
+            ++iter;
+            cmp = CompareKeys(iter._node->_data[iter._index], key);
+        }
+        return iter;
+    }
+    BSPConstIterator upper_bound(const tkey& key) const {
+        if (this->_root == nullptr) {};
+        BSPConstIterator iter = begin();
+        const int cmp = CompareKeys(iter._node->_data[iter._index], key);
+        while (cmp <= 0) {
+            ++iter;
+            cmp = CompareKeys(iter._node->_data[iter._index], key);
+        }
+        return iter;
+    }
 
     bool contains(const tkey& key) const {
         return find(key); // поправить немного чето не так явно
