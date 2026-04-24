@@ -5,10 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-#  Boost (header-only, needed by B*+-tree) 
+#  Boost (header-only, needed by B*+-tree)
 find_package(Boost REQUIRED)
 
-#  Flex / Bison 
+#  Flex / Bison
 find_package(BISON REQUIRED)
 find_package(FLEX  REQUIRED)
 
@@ -22,11 +22,10 @@ FLEX_TARGET(SqlLexer
 )
 ADD_FLEX_BISON_DEPENDENCY(SqlLexer SqlParser)
 
-#  Sources 
+#  Sources
 add_executable(DBMS_pain
         src/main.cpp
 
-        # Parser (hand-written)
         src/parser/AST.cpp
         src/parser/AST.h
         src/parser/SqlParser.cpp
@@ -51,6 +50,11 @@ add_executable(DBMS_pain
         src/engine/Table.h
         src/engine/Database.cpp
         src/engine/Database.h
+        src/engine/Executor.cpp
+        src/engine/Executor.h
+)
+
+target_include_directories(DBMS_pain PRIVATE src)
 
         # Index (B*+-tree)
         src/index/include/associativeContainer.h
