@@ -30,6 +30,8 @@ add_executable(DBMS_pain
         src/engine/Table.h
         src/engine/Database.cpp
         src/engine/Database.h
+        src/engine/Executor.cpp
+        src/engine/Executor.h
 )
 
 target_include_directories(DBMS_pain PRIVATE src)

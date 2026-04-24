@@ -5,7 +5,6 @@
 #include <string>
 #include "Schema.h"
 #include "index/IndexManager.h"
-#include "parser/AST.h"
 #include "storage/PageManager.h"
 #include "storage/RecordManager.h"
 
