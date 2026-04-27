@@ -169,72 +169,72 @@ public:
         explicit BSPIterator(BSPNodeTerm* node = nullptr, size_t index = 0) : _node(node), _index(index) {}
     };
 
-        class BSPConstIterator final
-        {
-            const BSPNodeTerm* _node;
-            size_t _index;
+    class BSPConstIterator final
+    {
+        const BSPNodeTerm* _node;
+        size_t _index;
 
-        public:
+    public:
 
-            using ValueType = treeDataTypeConst;
-            using reference = const ValueType&;
-            using pointer = const ValueType*;
-            using IteratorCategory = std::forward_iterator_tag;
-            using DifferenceType = ptrdiff_t;
-            using self = BSPConstIterator;
+        using ValueType = treeDataTypeConst;
+        using reference = const ValueType&;
+        using pointer = const ValueType*;
+        using IteratorCategory = std::forward_iterator_tag;
+        using DifferenceType = ptrdiff_t;
+        using self = BSPConstIterator;
 
-            friend class BStarPlusTree;
-            friend class BSPIterator;
+        friend class BStarPlusTree;
+        friend class BSPIterator;
 
-            BSPConstIterator(const BSPIterator& it) noexcept {
-                this->_index = it._index;
-                this->_node = it._node;
+        BSPConstIterator(const BSPIterator& it) noexcept {
+            this->_index = it._index;
+            this->_node = it._node;
+        }
+
+        reference operator*() const noexcept {
+            return _node->_data[_index];
+        }
+        pointer operator->() const noexcept {
+            return &_node->_data[_index];
+        }
+
+        self& operator++() {
+            if (_index == _node->_data.size()) {
+                _node = _node->_next;
+                _index = 0;
+            } else {
+                ++_index;
             }
+            return BSPConstIterator(_node, _index);
+        }
 
-            reference operator*() const noexcept {
-                return _node->_data[_index];
-            }
-            pointer operator->() const noexcept {
-                return &_node->_data[_index];
-            }
+        self operator++(int) {
+            self temp = *this;
+            ++*this;
+            return temp;
+        }
 
-            self& operator++() {
-                if (_index == _node->_data.size()) {
-                    _node = _node->_next;
-                    _index = 0;
-                } else {
-                    ++_index;
-                }
-                return BSPConstIterator(_node, _index);
-            }
-
-            self operator++(int) {
-                self temp = *this;
-                ++*this;
-                return temp;
-            }
-
-            bool operator==(const self& other) const noexcept {
-                return (this->_node == other._node && this->_index == other._index);
-            };
-
-            bool operator!=(const self& other) const noexcept {
-                return !(*this == other);
-            }
-
-            size_t CurrentNodeKeysCount() const noexcept {
-                return _node->_data.size();
-            }
-
-            size_t index() const noexcept {
-                return this->_index;
-            }
-
-            explicit BSPConstIterator(const BSPNodeTerm* node = nullptr, size_t index = 0) : BSPConstIterator(BSPIterator(node, index)) {}
+        bool operator==(const self& other) const noexcept {
+            return (this->_node == other._node && this->_index == other._index);
         };
 
-        friend class BSPIterator;
-        friend class BSPConstIterator;
+        bool operator!=(const self& other) const noexcept {
+            return !(*this == other);
+        }
+
+        size_t CurrentNodeKeysCount() const noexcept {
+            return _node->_data.size();
+        }
+
+        size_t index() const noexcept {
+            return this->_index;
+        }
+
+        explicit BSPConstIterator(const BSPNodeTerm* node = nullptr, size_t index = 0) : BSPConstIterator(BSPIterator(node, index)) {}
+    };
+
+    friend class BSPIterator;
+    friend class BSPConstIterator;
 
         // endregion iterators declaration
 
@@ -281,12 +281,13 @@ public:
                 return end();
             }
 
-            BSPNodeMiddle * node = this->_root;
+            BSPNodeBase * node = this->_root;
             while (!node->_isTerminated) {
+                node = static_cast<BSPNodeMiddle*>(node);
                 node = node->_pointers[0];
             }
             node = static_cast<BSPNodeTerm*>(node);
-            return BSPIterator(node->_keys, 0);
+            return BSPIterator(node, 0);
         }
 
         BSPIterator end() {
@@ -297,28 +298,32 @@ public:
             if (_root == nullptr || _size == 0) {
                 return end();
             }
-            BSPNodeMiddle * node = this->_root;
+
+            BSPNodeBase * node = this->_root;
             while (!node->_isTerminated) {
+                node = static_cast<BSPNodeMiddle*>(node);
                 node = node->_pointers[0];
             }
             node = static_cast<BSPNodeTerm*>(node);
-            return BSPConstIterator(node->_keys, 0);
+            return BSPConstIterator(node, 0);
         }
 
         BSPConstIterator end() const {
             return BSPConstIterator(nullptr, 0);
         }
 
-        BSPConstIterator cbegin() const { // а зач он если есть методы выше?
+        BSPConstIterator cbegin() const { // точно вернет константное даже не для константного
             if (_root == nullptr || _size == 0) {
                 return end();
             }
-            BSPNodeMiddle * node = this->_root;
+
+            BSPNodeBase * node = this->_root;
             while (!node->_isTerminated) {
+                node = static_cast<BSPNodeMiddle*>(node);
                 node = node->_pointers[0];
             }
             node = static_cast<BSPNodeTerm*>(node);
-            return BSPConstIterator(node->_keys, 0);
+            return BSPConstIterator(node, 0);
         }
 
         BSPConstIterator cend() const {
@@ -356,8 +361,7 @@ public:
             while (!curr->_isTerminated) {
                 auto * node = static_cast<BSPNodeMiddle*>(curr);
                 size_t i = 0;
-                int cmp = comparer(CompareKeys(key, node->_keys[i]), CompareKeys(node->_keys[i], key));
-                while (i < node->_keys.size() && cmp != 0) {
+                while (i < node->_keys.size() && CompareKeys(node->_keys[i], key)) {
                     ++i;
                 }
                 curr = node->_pointers[i];
@@ -366,15 +370,16 @@ public:
             auto * NodeList = static_cast<BSPNodeTerm*>(curr);
             // бинарный поиск нужного ключа в узле
             int left = 0;
-            int right = NodeList->_data.size() - 1;
+            auto data_of_leaf = NodeList->_data;
+            int right = data_of_leaf.size() - 1;
 
-            while (left < right) {
+            while (left <= right) {
                 int mid = (left + right) / 2;
-                int cmp = comparer(CompareKeys(key, NodeList->_keys[mid], CompareKeys(NodeList->_keys[mid], key)));
-                if (cmp == 0) {
+                auto mid_data = data_of_leaf[mid].first;
+                if (!CompareKeys(mid_data, key) && !CompareKeys(key, mid_data)) {
                     return BSPIterator(NodeList, mid);
                 }
-                if (cmp < 0) {
+                if (CompareKeys(key, mid_data)) {
                     right = mid - 1;
                 } else {
                     left = mid + 1;
@@ -391,10 +396,8 @@ public:
         BSPIterator lower_bound(const tkey& key) {
             if (this->_root == nullptr) {};
             BSPIterator iter = begin();
-            int cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
-            while (cmp < 0) {
+            while (!CompareKeys(key, *iter) < 0) {
                 ++iter;
-                cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
             }
             return iter;
         }
@@ -402,21 +405,17 @@ public:
         BSPConstIterator lower_bound(const tkey& key) const {
             if (this->_root == nullptr) {};
             BSPConstIterator iter = begin();
-            int cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
-            while (cmp < 0) {
+            while (!CompareKeys(key, *iter) < 0) {
                 ++iter;
-                cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
             }
-            return  iter;
+            return iter;
         }
 
         BSPIterator upper_bound(const tkey& key) {
             if (this->_root == nullptr) {};
             BSPIterator iter = begin();
-            int cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
-            while (cmp <= 0) {
+            while (CompareKeys(*iter, key) < 0) {
                 ++iter;
-                cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
             }
             return iter;
         }
@@ -424,16 +423,14 @@ public:
         BSPConstIterator upper_bound(const tkey& key) const {
             if (this->_root == nullptr) {};
             BSPConstIterator iter = begin();
-            int cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
-            while (cmp <= 0) {
+            while (CompareKeys(*iter, key) < 0) {
                 ++iter;
-                cmp = comparer(CompareKeys(key, iter._node->_keys), CompareKeys(iter._node->_keys, key));
             }
             return iter;
         }
 
         bool contains(const tkey& key) const {
-            return find(key) == end();
+            return find(key) != end();
         };
 
         // endregion lookup declaration
@@ -449,6 +446,7 @@ public:
 
         // TODO: отдельные функции merge split checkIfFull узлов
         std::pair<BSPIterator, bool> insert(const treeDataType& data) { // тут ожидается страшная писанина
+            //
             ++_size;
         }
         std::pair<BSPIterator, bool> insert(treeDataType&& data) {
