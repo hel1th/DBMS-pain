@@ -25,6 +25,10 @@ struct Schema {
             if (columns[i].name == name) return i;
         return -1;
     }
+    
+    size_t GetColumnCount() const { return columns.size(); }
+    ColType GetColumnType(size_t index) const { return columns[index].type; }
+    const std::string& GetColumnName(size_t index) const { return columns[index].name; }
 };
 
 
