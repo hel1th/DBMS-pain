@@ -8,39 +8,37 @@
 
 constexpr int PAGE_SIZE = 4096;
 using Page = std::array<char, PAGE_SIZE>;
-using page_id_t = int32_t;
+using PageID_t = int32_t;
 
 class PageManager {
 public:
-  explicit PageManager(const std::string &file_path);
+  explicit PageManager(const std::string &filePath);
   ~PageManager();
 
   // Прочитать страницу с диска в память
-  Page read_page(page_id_t page_id);
+  Page ReadPage(PageID_t pageID);
 
   // Записать страницу из памяти на диск
-  void write_page(page_id_t page_id, const Page &page);
+  void WritePage(PageID_t pageID, const Page &page);
 
   // Выделить новую страницу (расширить файл)
-  page_id_t allocate_page();
+  PageID_t AllocatePage();
 
   // Пометить страницу как свободную
-  void free_page(page_id_t page_id);
+  void FreePage(PageID_t pageID);
 
   // Сколько страниц в файле
-  int32_t page_count() const;
-
-  int32_t free_list_head() const;
+  int32_t PageCount() const;
 
 private:
-  std::string file_path_;
+  std::string filePath_;
   std::fstream file_;
-  int32_t page_count_;
-  int32_t free_list_head_;
+  int32_t pageCount_;
+  int32_t freeListHead_;
 
-  void init_file();   // создать файл если не существует
-  void load_header(); // прочитать page_count из заголовка
-  void save_header(); // сохранить page_count в заголовок
+  void InitFile();   // создать файл если не существует
+  void LoadHeader(); // прочитать PageCount из заголовка
+  void SaveHeader(); // сохранить PageCount в заголовок
 };
 
 #endif // DBMS_PAIN_PAGEMANAGER_H
