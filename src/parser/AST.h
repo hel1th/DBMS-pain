@@ -1,9 +1,12 @@
+#ifndef DBMS_PARSER_AST_H
+#define DBMS_PARSER_AST_H
+
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "engine/Schema.h" // ColType
-#include "utils/Value.h"
+#include "../engine/Schema.h" // ColType
+#include "../utils/Value.h"
 
 
 // Виды узлов
@@ -208,3 +211,5 @@ public:
     explicit UseQuery(const std::string& name);
     [[nodiscard]] std::string toString() const override;
 };
+
+#endif // DBMS_PARSER_AST_H
