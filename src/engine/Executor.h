@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Database.h"
+#include "catalog/SystemCatalog.h"
 #include "parser/AST.h"
 #include "utils/Value.h"
 
@@ -28,7 +29,8 @@ public:
 
 private:
     std::string currentDb_;
-    std::unordered_map<std::string, std::unique_ptr<Database>> database_;
+    std::unordered_map<std::string, std::unique_ptr<Database>> databases_;
+    SystemCatalog catalog_;
 
     QueryResult execInsert(const InsertQuery& q);
     QueryResult execSelect(const SelectQuery& q);

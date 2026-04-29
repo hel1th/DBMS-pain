@@ -56,7 +56,6 @@ public:
     explicit Literal(Value v);
     [[nodiscard]] std::string toString() const override;
 
-    // используем функции из Value.h — не дублируем
     bool isNull() const { return val::isNull(value); }
     bool isInt() const { return val::isInt(value); }
     bool isString() const { return val::isString(value); }

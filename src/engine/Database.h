@@ -10,8 +10,7 @@
 
 class Database {
 public:
-    explicit Database(const std::string& db_path);
-
+    Database(const std::string& db_path, const std::string& name);
     // DDL (data definition language)
     void createTable(const Schema& schema);
     void dropTable(const std::string& name);

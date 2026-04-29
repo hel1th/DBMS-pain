@@ -2,6 +2,24 @@
 
 #include <regex>
 
+Executor::Executor() : catalog_("./data") {}
+
+QueryResult Executor::execCreateDatabase(const CreateDatabaseQuery& q) {
+    catalog_.addDatabase(q.dbName);
+    databases_[q.dbName] = std::make_unique<Database>(
+        "./data/" + q.dbName, q.dbName
+    );
+
+    return {true, "",{}, 0};
+}
+
+QueryResult Executor::execDropDatabase(const DropDatabaseQuery& q) {
+    catalog_.removeDatabase(q.dbName);
+    databases_.erase(q.dbName);
+    if (currentDb_ == q.dbName)
+        currentDb_ = "";
+    return {true, "", {}, 0};
+}
 
 QueryResult Executor::execute(ASTNode* node) {
     if (!node)
@@ -9,23 +27,23 @@ QueryResult Executor::execute(ASTNode* node) {
 
     switch (node->kind) {
         case NodeKind::INSERT_QUERY:
-            return execInsert(*static_cast<InsertQuery*>(node));
+            return execInsert(*dynamic_cast<InsertQuery*>(node));
         case NodeKind::SELECT_QUERY:
-            return execSelect(*static_cast<SelectQuery*>(node));
+            return execSelect(*dynamic_cast<SelectQuery*>(node));
         case NodeKind::UPDATE_QUERY:
-            return execUpdate(*static_cast<UpdateQuery*>(node));
+            return execUpdate(*dynamic_cast<UpdateQuery*>(node));
         case NodeKind::DELETE_QUERY:
-            return execDelete(*static_cast<DeleteQuery*>(node));
+            return execDelete(*dynamic_cast<DeleteQuery*>(node));
         case NodeKind::CREATE_TABLE_QUERY:
-            return execCreateTable(*static_cast<CreateTableQuery*>(node));
+            return execCreateTable(*dynamic_cast<CreateTableQuery*>(node));
         case NodeKind::DROP_TABLE_QUERY:
-            return execDropTable(*static_cast<DropTableQuery*>(node));
+            return execDropTable(*dynamic_cast<DropTableQuery*>(node));
         case NodeKind::CREATE_DATABASE_QUERY:
-            return execCreateDatabase(*static_cast<CreateDatabaseQuery*>(node));
+            return execCreateDatabase(*dynamic_cast<CreateDatabaseQuery*>(node));
         case NodeKind::DROP_DATABASE_QUERY:
-            return execCreateDatabase(*static_cast<CreateDatabaseQuery*>(node));
+            return execCreateDatabase(*dynamic_cast<CreateDatabaseQuery*>(node));
         case NodeKind::USE_QUERY:
-            return execUse(*static_cast<UseQuery*>(node));
+            return execUse(*dynamic_cast<UseQuery*>(node));
         default:
             return {false, "Empty query type"};
     }
@@ -39,11 +57,11 @@ QueryResult Executor::execute(ASTNode* node) {
 Value Executor::resolve(const ASTNode* node, const std::vector<Value>& record,
                         const Schema& schema) {
     if (node->kind == NodeKind::LITERAL) {
-        return static_cast<const Literal*>(node)->value;
+        return dynamic_cast<const Literal*>(node)->value;
     }
 
     if (node->kind == NodeKind::COLUMN_REF) {
-        auto* ref = static_cast<const ColumnRef*>(node);
+        auto* ref = dynamic_cast<const ColumnRef*>(node);
         const int idx = schema.columnIndex(ref->name);
         return record[idx];
     }
@@ -59,17 +77,17 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
 
     switch (where->kind) {
         case NodeKind::OR_OP: {
-            auto* n = static_cast<const OrOp*>(where);
+            auto* n = dynamic_cast<const OrOp*>(where);
             return matches(record, schema, n->left.get()) ||
                    matches(record, schema, n->right.get());
         }
         case NodeKind::AND_OP: {
-            auto* n = static_cast<const AndOp*>(where);
+            auto* n = dynamic_cast<const AndOp*>(where);
             return matches(record, schema, n->left.get()) &&
                    matches(record, schema, n->right.get());
         }
         case NodeKind::BINARY_OP: {
-            auto* n = static_cast<const BinaryOp*>(where);
+            auto* n = dynamic_cast<const BinaryOp*>(where);
             Value lv = resolve(n->left.get(), record, schema);
             Value rv = resolve(n->right.get(), record, schema);
 
@@ -94,7 +112,7 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
 
         case NodeKind::BETWEEN_OP: {
             // val BETWEEN low AND high  ->  low <= val < high
-            auto* n = static_cast<const BetweenOp*>(where);
+            auto* n = dynamic_cast<const BetweenOp*>(where);
             Value low = resolve(n->low.get(), record, schema);
             Value high = resolve(n->high.get(), record, schema);
             Value val = resolve(n->expr.get(), record, schema);
@@ -106,7 +124,7 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
             return !valueLess(val, low) && valueLess(val, high);
         }
         case NodeKind::LIKE_OP: {
-            auto* n = static_cast<const LikeOp*>(where);
+            auto* n = dynamic_cast<const LikeOp*>(where);
             Value val     = resolve(n->expr.get(),    record, schema);
             Value pattern = resolve(n->pattern.get(), record, schema);
 
