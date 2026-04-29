@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "engine/Schema.h" // ColType
+#include "engine/Schema.h"
 #include "utils/Value.h"
 
 

@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "utils/Value.h"
+
 enum class ColType { INT, STRING };
 
 struct ColumnDef {
@@ -11,8 +13,7 @@ struct ColumnDef {
     ColType     type;
     bool        notNull  = false;
     bool        indexed   = false;
-    // задание 10
-    // std::optional<Value> default_value;
+    std::optional<Value> default_value;
 };
 
 struct Schema {
@@ -23,6 +24,12 @@ struct Schema {
     int columnIndex(const std::string& name) const {
         for (int i = 0; i < static_cast<int>(columns.size()); i++)
             if (columns[i].name == name) return i;
+        return -1;
+    }
+    int indexedColumn() const {
+        for (int i = 0; i < static_cast<int>(columns.size()); ++i)
+            if (columns[i].indexed) return i;
+
         return -1;
     }
 };
