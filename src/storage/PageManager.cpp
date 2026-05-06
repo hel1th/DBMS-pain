@@ -12,7 +12,7 @@ constexpr int HEADER_RECORD_COUNT_OFFSET = 12; // 12-15: количество з
 
 // Константы для обычной страницы
 constexpr int PAGE_NEXT_PAGE_OFFSET = 0;     // 0-3: next_page
-constexpr int PAGE_RECORD_COUNT_OFFSET = 4;  // 4-5: record_count
+constexpr int PAGE_RECORD_COUNT_OFFSET = 4;  // 4-5: recordCount
 constexpr int PAGE_FREE_OFFSET_OFFSET = 6;   // 6-7: free_offset
 constexpr int PAGE_FLAGS_OFFSET = 8;         // 8-11: flags
 // 12-15: зарезервировано
@@ -26,14 +26,11 @@ PageManager::PageManager(const std::string &filePath)
     struct stat buffer;
     bool fileExists = (stat(filePath_.c_str(), &buffer) == 0);
     
-    // Открываем файл для чтения и записи в бинарном режиме
     file_.open(filePath_, std::ios::in | std::ios::out | std::ios::binary);
     
     if (!fileExists) {
-        // Файл не существует - создаём новый
         InitFile();
     } else {
-        // Файл существует - загружаем заголовок
         LoadHeader();
     }
 }
@@ -46,7 +43,6 @@ PageManager::~PageManager() {
 }
 
 void PageManager::InitFile() {
-    // Закрываем и создаём новый файл
     if (file_.is_open()) {
         file_.close();
     }
@@ -57,26 +53,22 @@ void PageManager::InitFile() {
         throw std::runtime_error("Cannot create file: " + filePath_);
     }
     
-    // Создаём заголовочную страницу (Page 0)
     Page headerPage{};
     
-    // Записываем magic number
     uint32_t magic = MAGIC_NUMBER;
     std::memcpy(headerPage.data() + HEADER_MAGIC_OFFSET, &magic, sizeof(magic));
     
-    // Изначально 1 страница (только заголовочная)
+    // Изначально 1 страница (заголовочная)
     pageCount_ = 1;
     std::memcpy(headerPage.data() + HEADER_PAGE_COUNT_OFFSET, &pageCount_, sizeof(pageCount_));
     
-    // Список свободных страниц пуст (-1 означает конец списка)
+    // Список свободных страниц пуст
     freeListHead_ = -1;
     std::memcpy(headerPage.data() + HEADER_FREE_LIST_OFFSET, &freeListHead_, sizeof(freeListHead_));
     
     // Количество записей = 0
     int32_t recordCount = 0;
     std::memcpy(headerPage.data() + HEADER_RECORD_COUNT_OFFSET, &recordCount, sizeof(recordCount));
-    
-    // Остальная часть страницы (16+ байт) уже обнулена благодаря {} инициализации
     
     // Записываем заголовочную страницу
     file_.seekp(0, std::ios::beg);

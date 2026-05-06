@@ -2,22 +2,18 @@
 #include <cstring>
 #include <stdexcept>
 
-// ========== Публичные методы ==========
 
 std::vector<char> Serializer::Serialize(const std::vector<Value> &record,
                                         const Schema &schema) {
   const size_t columnCount = schema.GetColumnCount();
   
-  // 1. Проверка: количество значений должно совпадать со схемой
   if (record.size() != columnCount) {
     throw std::runtime_error(
       "Serializer::Serialize: Column count mismatch. Expected " +
       std::to_string(columnCount) + ", got " + std::to_string(record.size()));
   }
   
-  // 2. Проверка типов и NOT NULL
   for (size_t i = 0; i < columnCount; i++) {
-    // Проверка NOT NULL
     if (schema.columns[i].notNull && val::isNull(record[i])) {
       throw std::runtime_error(
         "Serializer::Serialize: NULL value in NOT NULL column " + schema.columns[i].name);
@@ -40,17 +36,13 @@ std::vector<char> Serializer::Serialize(const std::vector<Value> &record,
   
   std::vector<char> bytes;
   
-  // 3. null_bitmap (N байт, 1 бит на колонку)
   size_t bitmapSize = GetNullBitmapSize(schema);
   bytes.resize(bitmapSize, 0);
   
-  // 4. Заполняем bitmap и сериализуем не-NULL значения
   for (size_t i = 0; i < columnCount; i++) {
     if (val::isNull(record[i])) {
-      // Устанавливаем бит NULL в bitmap
       SetNullBit(bytes.data(), i);
     } else {
-      // Сериализуем значение в зависимости от типа колонки
       if (IsIntColumn(schema.columns[i])) {
         int intValue = val::getInt(record[i]);
         WriteInt32(bytes, intValue);  // 4 байта
@@ -69,7 +61,6 @@ std::vector<Value> Serializer::Deserialize(const char *data, size_t size,
   const size_t columnCount = schema.GetColumnCount();
   size_t bitmapSize = GetNullBitmapSize(schema);
   
-  // 1. Проверка минимального размера
   if (data == nullptr || size < bitmapSize) {
     throw std::runtime_error(
       "Serializer::Deserialize: Data too small for null bitmap");
@@ -78,20 +69,16 @@ std::vector<Value> Serializer::Deserialize(const char *data, size_t size,
   const char *ptr = data;
   const char *end = data + size;
   
-  // 2. Читаем null_bitmap
   const char *bitmap = ptr;
   ptr += bitmapSize;
   
   std::vector<Value> result;
   result.reserve(columnCount);
   
-  // 3. Читаем каждую колонку согласно схеме
   for (size_t i = 0; i < columnCount; i++) {
     if (IsNull(bitmap, i)) {
-      // NULL значение
       result.push_back(std::nullopt);
     } else {
-      // Читаем значение согласно типу из схемы
       if (IsIntColumn(schema.columns[i])) {
         if (ptr + 4 > end) {  // 4 байта для int32_t
           throw std::runtime_error(
@@ -140,14 +127,14 @@ size_t Serializer::SerializedSize(const std::vector<Value> &record,
   
   for (size_t i = 0; i < columnCount; i++) {
     if (val::isNull(record[i])) {
-      continue;  // NULL значения не занимают места (кроме бита в bitmap)
+      continue;  // нулл значения не занимают места (кроме бита в bitmap)
     }
     
     if (IsIntColumn(schema.columns[i])) {
       total += 4;  // int32_t = 4 байта
     } else if (IsStringColumn(schema.columns[i])) {
       std::string strValue = val::getString(record[i]);
-      total += 4 + strValue.size();  // длина (4) + данные
+      total += 4 + strValue.size();  // длина 4 + данные
     }
   }
   
@@ -160,7 +147,7 @@ size_t Serializer::MaxSerializedSize(const Schema &schema) {
   
   for (size_t i = 0; i < columnCount; i++) {
     if (IsIntColumn(schema.columns[i])) {
-      total += 4;  // int32_t = 4 байта
+      total += 4;
     } else if (IsStringColumn(schema.columns[i])) {
       total += 4 + 65535;  // Максимальная длина строки (64KB)
     }
@@ -187,7 +174,7 @@ bool Serializer::IsValid(const char *data, size_t size, const Schema &schema) {
   try {
     for (size_t i = 0; i < schema.GetColumnCount(); i++) {
       if (IsNull(bitmap, i)) {
-        continue;  // NULL, данных нет
+        continue;
       }
       
       if (IsIntColumn(schema.columns[i])) {
@@ -210,7 +197,6 @@ bool Serializer::IsValid(const char *data, size_t size, const Schema &schema) {
   return true;
 }
 
-// ========== Приватные методы для null bitmap ==========
 
 size_t Serializer::GetNullBitmapSize(const Schema &schema) {
   const size_t columnCount = schema.GetColumnCount();
@@ -228,8 +214,6 @@ bool Serializer::IsNull(const char *bitmap, size_t columnIndex) {
   size_t bitIndex = columnIndex % 8;
   return (static_cast<unsigned char>(bitmap[byteIndex]) & (1 << bitIndex)) != 0;
 }
-
-// ========== Методы для записи/чтения примитивов (INT = 4 байта) ==========
 
 void Serializer::WriteInt32(std::vector<char> &bytes, int32_t value) {
   uint32_t uvalue = static_cast<uint32_t>(value);
@@ -257,17 +241,19 @@ uint32_t Serializer::ReadUint32(const char *data) {
 
 void Serializer::WriteString(std::vector<char> &bytes, const std::string &value) {
   uint32_t len = static_cast<uint32_t>(value.size());
-  // Пишем длину как 4 байта (little-endian)
   bytes.push_back(static_cast<char>(len >> 0));
   bytes.push_back(static_cast<char>(len >> 8));
   bytes.push_back(static_cast<char>(len >> 16));
   bytes.push_back(static_cast<char>(len >> 24));
-  // Пишем данные строки
+
   bytes.insert(bytes.end(), value.begin(), value.end());
 }
 
 std::string Serializer::ReadString(const char *data, uint32_t &bytesRead) {
   uint32_t len = ReadUint32(data);
+  if (len > 1024 * 1024 * 10) {  // 10 MB лимит
+    throw std::runtime_error("String too long: " + std::to_string(len));
+  }
   bytesRead = 4 + len;
   return std::string(data + 4, len);
 }
