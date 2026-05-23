@@ -1,7 +1,12 @@
 #include <iostream>
 #include "BStarPlusTree.h"
 
+// ============================================================================
+// Main: run all tests
+// ============================================================================
+#include "tests.h"
+
 int main() {
-    std::cout << "dataBase in started" << std::endl;
+    runAllTests();
     return 0;
 }

@@ -9,7 +9,8 @@ file(GLOB SOURCES "src/*.cpp")
 
 # Создаем исполняемый файл
 add_executable(${PROJECT_NAME} ${SOURCES} include/BStarPlusTree.h
-    src/main.cpp)
+    src/main.cpp
+    src/tests.cpp)
 
 # Указываем папку с заголовочными файлами проекта
 target_include_directories(${PROJECT_NAME} PRIVATE include)
