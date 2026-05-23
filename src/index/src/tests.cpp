@@ -299,7 +299,9 @@ void testEraseBorrowLeft() {
     std::cout << "Test 15: Erase causing underflow and borrow from left\n";
     BspTree<int, int> tree;
     for (int i = 0; i < 100; ++i) tree.insert({i, i});
+    tree.printStructure();
     for (int i = 20; i < 28; ++i) tree.erase(i);
+    std::cout << "her" << std::endl;
     CHECK_EQ(tree.size(), 92, tree, "Size after deletions");
     for (int i = 20; i < 28; ++i) {
         CHECK(!tree.contains(i), tree, "Key " + std::to_string(i) + " should be deleted");
@@ -574,7 +576,7 @@ void runAllTests() {
     testInsertInternalSplit();
     testInsertRedistribution();
     testEraseBasic();
-    // testEraseBorrowLeft();
+    testEraseBorrowLeft();
     testEraseBorrowRight();
     // testEraseMergeLeaves();
     // testEraseMergeInternal();
