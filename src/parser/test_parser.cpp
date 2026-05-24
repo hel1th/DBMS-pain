@@ -1,9 +1,10 @@
 // tests/test_parser.cpp
-#include "SqlParser.h"
-#include "AST.h"
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
+#include "AST.h"
+#include "SqlParser.h"
+
 
 int main(int argc, char* argv[]) {
     SqlParser frontend;
@@ -19,11 +20,16 @@ int main(int argc, char* argv[]) {
         while (std::getline(script, line)) {
             ++lineNum;
             // Пропускаем пустые строки и комментарии (-- начинается комментарий)
-            if (line.empty() || (line.size() >= 2 && line.substr(0,2) == "--"))
+            if (line.empty() || (line.size() >= 2 && line.substr(0, 2) == "--"))
                 continue;
-            // Запрос может быть многострочным? Упростим: каждая строка – отдельный запрос, оканчивающийся на ';'
-            if (line.back() != ';') {
-                std::cerr << "Line " << lineNum << ": missing semicolon, skipping: " << line << std::endl;
+            // Запрос может быть многострочным? Упростим: каждая строка – отдельный запрос,
+            // оканчивающийся на ';'
+
+            // TODO поправить проверку на ';' в конце строки, сейчас она неверная
+            // Отрезать все пробельные символы в конце строки и символы переноса строки \r \n
+            if (line.back() == ';') {
+                std::cerr << "Line " << lineNum << ": missing semicolon, skipping: " << line
+                          << std::endl;
                 continue;
             }
             std::cout << "\n--- Query: " << line << "\n";
@@ -40,7 +46,8 @@ int main(int argc, char* argv[]) {
         while (true) {
             std::cout << "> ";
             std::getline(std::cin, line);
-            if (line.empty()) break;
+            if (line.empty())
+                break;
             if (line.back() != ';') {
                 std::cout << "Missing semicolon, ignoring.\n";
                 continue;
