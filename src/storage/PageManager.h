@@ -15,22 +15,22 @@ public:
   ~PageManager();
 
   // Прочитать страницу с диска в память
-  Page read_page(page_id_t page_id);
+  Page readPage(page_id_t page_id);
 
   // Записать страницу из памяти на диск
-  void write_page(page_id_t page_id, const Page &page);
+  void writePage(page_id_t page_id, const Page &page);
 
   // Выделить новую страницу (расширить файл)
-  page_id_t allocate_page();
+  page_id_t allocatePage();
 
   // Пометить страницу как свободную
-  void free_page(page_id_t page_id);
+  void freePage(page_id_t page_id);
 
   // Сколько страниц в файле
   int32_t page_count() const;
 
 private:
-  std::string file_path_;
+  std::string filePath_;
   std::fstream file_;
   int32_t page_count_;
 
