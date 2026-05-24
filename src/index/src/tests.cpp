@@ -335,11 +335,11 @@ void testEraseBorrowRight() {
 // ============================================================================
 void testEraseMergeLeaves() {
     std::cout << "Test 17: Erase causing merge of three leaves into two\n";
-    BspTree<int, int> tree;
-    const int N = 300;
+    BspTree<int, int, std::less<int>, 50> tree;
+    const int N = 30000;
     for (int i = 0; i < N; ++i) tree.insert({i, i});
-    for (int i = 100; i < 200; ++i) tree.erase(i);
-    CHECK_EQ(tree.size(), N - 100, tree, "Size after deletions");
+    for (int i = 1000; i < 2000; ++i) tree.erase(i);
+    CHECK_EQ(tree.size(), N - 1000, tree, "Size after deletions");
     int prev = -1;
     for (const auto& p : tree) {
         CHECK(p.first > prev, tree, "Order violation");
