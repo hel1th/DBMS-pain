@@ -100,7 +100,7 @@ void IndexManager::insertKey(const Value& key, RecordID rID) {
                 throw IndexError("duplicate");
             }
             intTree_->insert({valInt, rID});
-        } else if (std::holds_alternative<int>(key.value())) {
+        } else if (std::holds_alternative<std::string>(key.value())) {
             if (!strTree_) {
                 strTree_ = std::make_unique<BspTree<std::string, RecordID>>();
             }
@@ -116,16 +116,17 @@ void IndexManager::insertKey(const Value& key, RecordID rID) {
 
 void IndexManager::removeKey(const Value& key) {
     if (std::holds_alternative<int>(key.value()) && intTree_) {
-        auto iterator = intTree_->erase(std::get<int>(key.value()));
-        if (iterator == intTree_->end()) {
+        int valInt = std::get<int>(key.value());
+        if (intTree_->find(valInt) == intTree_->end()) {
             throw IndexError("no key to remove");
         }
-
+        intTree_->erase(std::get<int>(key.value()));
     } else if (std::holds_alternative<std::string>(key.value()) && strTree_) {
-        auto iterator = strTree_->erase(std::get<std::string>(key.value()));
-        if (iterator == strTree_->end()) {
+        const std::string& strInt = std::get<std::string>(key.value());
+        if (strTree_->find(strInt) == strTree_->end()) {
             throw IndexError("no key to remove");
         }
+        intTree_->erase(std::get<int>(key.value()));
     }
 }
 
@@ -147,5 +148,6 @@ RecordID IndexManager::findKey(const Value& key) {
             throw IndexError("key not found");
         }
     }
+    throw IndexError("Index key is empty or type is undefined");
 }
 

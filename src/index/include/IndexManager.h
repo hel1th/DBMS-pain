@@ -38,11 +38,6 @@ private:
     void load(); // читает файл -> заполняет дерево
     void save(); // сериализует дерево -> пишет в файл
 
-    template<typename TKey, typename TValue>
-    void serializeTree(std::ostream& file, BspTree<TKey, TValue>& tree);
-    
-    template<typename TKey, typename TValue>
-    void deserializeTree(std::istream& file, BspTree<TKey, TValue>& tree);
 };
 
 #endif // DBMS_PAIN_INDEXMANAGER_H
