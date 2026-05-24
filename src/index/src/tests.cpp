@@ -17,7 +17,6 @@
             std::cerr << "\n[ERROR] " << message << "\n"; \
             std::cerr << "Condition failed: " << #condition << "\n"; \
             std::cerr << "File: " << __FILE__ << ", line: " << __LINE__ << "\n"; \
-            tree.printStructure(); \
             abort(); \
         } \
     } while(0)
@@ -40,7 +39,6 @@
             std::cerr << "\n[ERROR] " << context << "\n"; \
             std::cerr << "Expected: " << (expected) << ", got: " << (actual) << "\n"; \
             std::cerr << "File: " << __FILE__ << ", line: " << __LINE__ << "\n"; \
-            tree.printStructure(); \
             abort(); \
         } \
     } while(0)
@@ -299,9 +297,7 @@ void testEraseBorrowLeft() {
     std::cout << "Test 15: Erase causing underflow and borrow from left\n";
     BspTree<int, int> tree;
     for (int i = 0; i < 100; ++i) tree.insert({i, i});
-    tree.printStructure();
     for (int i = 20; i < 28; ++i) tree.erase(i);
-    std::cout << "her" << std::endl;
     CHECK_EQ(tree.size(), 92, tree, "Size after deletions");
     for (int i = 20; i < 28; ++i) {
         CHECK(!tree.contains(i), tree, "Key " + std::to_string(i) + " should be deleted");
@@ -358,10 +354,10 @@ void testEraseMergeLeaves() {
 void testEraseMergeInternal() {
     std::cout << "Test 18: Erase causing internal node merge\n";
     BspTree<int, int> tree;
-    const int N = 500;
+    const int N = 2000;
     for (int i = 0; i < N; ++i) tree.insert({i, i});
-    for (int i = 100; i < 400; ++i) tree.erase(i);
-    CHECK_EQ(tree.size(), N - 300, tree, "Size after deletions");
+    for (int i = 100; i < 1600; ++i) tree.erase(i);
+    CHECK_EQ(tree.size(), N - 1500, tree, "Size after deletions");
     int prev = -1;
     for (const auto& p : tree) {
         CHECK(p.first > prev, tree, "Order violation");
@@ -578,16 +574,16 @@ void runAllTests() {
     testEraseBasic();
     testEraseBorrowLeft();
     testEraseBorrowRight();
-    // testEraseMergeLeaves();
-    // testEraseMergeInternal();
-    // testEraseRootLeafEmpty();
+    testEraseMergeLeaves();
+    testEraseMergeInternal();
+    testEraseRootLeafEmpty();
     testLowerUpperBound();
     testIterators();
     testAccessOperators();
     testFindContains();
     testInsertOrAssignEmplace();
-    // testEraseRange();
-    // testComplexSequence();
+    testEraseRange();
+    testComplexSequence();
 
     std::cout << "\nAll tests passed.\n";
 }

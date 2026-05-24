@@ -778,9 +778,7 @@ void BspTree<TKey, TValue, Compare, T>::splitRootInner()
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::handleLeafOverflow(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeTerm* leaf)
 {
-     std::cout << "in handle leaf" << std::endl;
     if (tryRedistributeLeaf(path, leaf)) {
-        std::cout << "redist leaves" << std::endl;
         return;
     }
     splitLeaf2To3(path, leaf);
@@ -789,14 +787,11 @@ void BspTree<TKey, TValue, Compare, T>::handleLeafOverflow(std::stack<std::pair<
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::handleInnerOverflow(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeMiddle* node)
 {
-    std::cout << "in handle inner" << std::endl;
-
     if (path.empty()) {
         splitRootInner();
         return;
     }
     if (tryRedistributeInner(path, node)) {
-        std::cout << "redist inners" << std::endl;
         return;
     }
     splitInner2To3(path, node);
@@ -835,19 +830,21 @@ bool BspTree<TKey, TValue, Compare, T>::tryRedistributeInner(std::stack<std::pai
     BspNodeMiddle* leftBrother = (childIndex > 0) ? static_cast<BspNodeMiddle*>(parent->pointers_[childIndex - 1]) : nullptr;
 
     if (rightBrother && rightBrother->keys_.size() < maximumKeysInNode) {
-        rightBrother->keys_.insert(rightBrother->keys_.begin(), node->keys_.back());
         rightBrother->pointers_.insert(rightBrother->pointers_.begin(), node->pointers_.back());
-        node->keys_.pop_back();
         node->pointers_.pop_back();
-        parent->keys_[childIndex] = rightBrother->keys_[0];
+
+        rightBrother->keys_.insert(rightBrother->keys_.begin(), parent->keys_[childIndex]);
+        parent->keys_[childIndex] = node->keys_.back();
+        node->keys_.pop_back();
         return true;
     }
     if (leftBrother && leftBrother->keys_.size() < maximumKeysInNode) {
-        leftBrother->keys_.push_back(node->keys_[0]);
         leftBrother->pointers_.push_back(node->pointers_[0]);
-        node->keys_.erase(node->keys_.begin());
         node->pointers_.erase(node->pointers_.begin());
+
+        leftBrother->keys_.push_back(parent->keys_[childIndex - 1]);
         parent->keys_[childIndex - 1] = node->keys_[0];
+        node->keys_.erase(node->keys_.begin());
         return true;
     }
     return false;
@@ -856,7 +853,6 @@ bool BspTree<TKey, TValue, Compare, T>::tryRedistributeInner(std::stack<std::pai
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::splitLeaf2To3(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeTerm* leaf)
 {
-    std::cout << "in split leaf" << std::endl;
 
     BspNodeTerm* newLeaf = new BspNodeTerm();
     BspNodeMiddle* parent = path.top().first;
@@ -874,15 +870,14 @@ void BspTree<TKey, TValue, Compare, T>::splitLeaf2To3(std::stack<std::pair<BspNo
     if (rightBrother == nullptr && leftBrother != nullptr) {
         leftNode = leftBrother;
         rightNode = leaf;
-        central_index = childIndex - 1; 
+        central_index = childIndex; 
     } else if (rightBrother != nullptr) {
         leftNode = leaf;
         rightNode = rightBrother;
-        central_index = childIndex;
+        central_index = childIndex + 1; 
     } else {
         return;
     }
-
     merged.insert(merged.end(), leftNode->data_.begin(), leftNode->data_.end());
     merged.insert(merged.end(), rightNode->data_.begin(), rightNode->data_.end());
 
@@ -893,22 +888,27 @@ void BspTree<TKey, TValue, Compare, T>::splitLeaf2To3(std::stack<std::pair<BspNo
     leftNode->data_.clear();
     rightNode->data_.clear();
 
-    for (size_t i = 0; i < border1; ++i) leftNode->data_.push_back(merged[i]);
-    for (size_t i = border1; i < border2; ++i) newLeaf->data_.push_back(merged[i]);
-    for (size_t i = border2; i < overall; ++i) rightNode->data_.push_back(merged[i]);
+    for (size_t i = 0; i < border1; ++i) {
+        leftNode->data_.push_back(merged[i]);
+    }
+    for (size_t i = border1; i < border2; ++i) {
+        newLeaf->data_.push_back(merged[i]);
+    }
+    for (size_t i = border2; i < overall; ++i) {
+        rightNode->data_.push_back(merged[i]);
+    }
 
     BspNodeTerm* oldNext = rightNode->next_;
     leftNode->next_ = newLeaf;
     newLeaf->next_ = rightNode;
     rightNode->next_ = oldNext;
 
-    parent->keys_.erase(parent->keys_.begin() + central_index);
-    parent->pointers_.erase(parent->pointers_.begin() + central_index + 1);
-    parent->keys_.insert(parent->keys_.begin() + central_index, newLeaf->data_[0].first);
-    parent->keys_.insert(parent->keys_.begin() + central_index + 1, rightNode->data_[0].first);
-    parent->pointers_.insert(parent->pointers_.begin() + central_index + 1, newLeaf);
-    parent->pointers_.insert(parent->pointers_.begin() + central_index + 2, rightNode);
-    std::cout << "splited leaves" << std::endl;
+    parent->keys_.erase(parent->keys_.begin() + central_index - 1);
+    parent->pointers_.erase(parent->pointers_.begin() + central_index);
+    parent->keys_.insert(parent->keys_.begin() + central_index - 1, newLeaf->data_[0].first);
+    parent->keys_.insert(parent->keys_.begin() + central_index, rightNode->data_[0].first);
+    parent->pointers_.insert(parent->pointers_.begin() + central_index, newLeaf);
+    parent->pointers_.insert(parent->pointers_.begin() + central_index + 1, rightNode);
 
     if (parent->keys_.size() > maximumKeysInNode) {
         handleInnerOverflow(path, parent);
@@ -918,8 +918,6 @@ void BspTree<TKey, TValue, Compare, T>::splitLeaf2To3(std::stack<std::pair<BspNo
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::splitInner2To3(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeMiddle* node)
 {
-    std::cout << "in split inners" << std::endl;
-
     BspNodeMiddle* newNode = new BspNodeMiddle();
     BspNodeMiddle* parent = path.top().first;
     size_t childIndex = path.top().second;
@@ -929,79 +927,96 @@ void BspTree<TKey, TValue, Compare, T>::splitInner2To3(std::stack<std::pair<BspN
     BspNodeMiddle* leftBrother = (childIndex > 0) ? static_cast<BspNodeMiddle*>(parent->pointers_[childIndex - 1]) : nullptr;
     size_t central_index = 0;
 
-    std::vector<TKey> mergedKeys;
-    std::vector<BspNodeBase*> mergedPointers;
-
     BspNodeMiddle* leftNode = nullptr;
     BspNodeMiddle* rightNode = nullptr;
 
     if (rightBrother == nullptr && leftBrother != nullptr) {
         leftNode = leftBrother;
         rightNode = node;
-        central_index = childIndex - 1; 
+        central_index = childIndex; 
     } else if (rightBrother != nullptr) {
         leftNode = node;
         rightNode = rightBrother;
-        central_index = childIndex;
+        central_index = childIndex + 1;
     } else {
+        delete newNode;
         return;
     }
 
+    std::vector<TKey> mergedKeys;
+    std::vector<BspNodeBase*> mergedPointers;
+    
+
     mergedKeys.insert(mergedKeys.end(), leftNode->keys_.begin(), leftNode->keys_.end());
-    mergedPointers.insert(mergedPointers.end(), leftNode->pointers_.begin(), leftNode->pointers_.end());
+    mergedKeys.push_back(parent->keys_[central_index - 1]); // Спускаем разделитель
     mergedKeys.insert(mergedKeys.end(), rightNode->keys_.begin(), rightNode->keys_.end());
+
+    mergedPointers.insert(mergedPointers.end(), leftNode->pointers_.begin(), leftNode->pointers_.end());
     mergedPointers.insert(mergedPointers.end(), rightNode->pointers_.begin(), rightNode->pointers_.end());
 
-    size_t overall = mergedKeys.size();
-    size_t border1 = overall / 3;
-    size_t border2 = 2 * overall / 3;
-
     leftNode->keys_.clear();
-    rightNode->keys_.clear();
     leftNode->pointers_.clear();
+    rightNode->keys_.clear();
     rightNode->pointers_.clear();
 
-    for (size_t i = 0; i < border1 + 1; ++i) {
-        leftNode->pointers_.push_back(mergedPointers[i]);  
+    size_t totalPointers = mergedPointers.size();
+    size_t p1 = totalPointers / 3;
+    size_t p2 = totalPointers / 3;
+    size_t p3 = totalPointers - p1 - p2;
+
+    size_t ptrIdx = 0;
+    for (size_t i = 0; i < p1; ++i) {
+        leftNode->pointers_.push_back(mergedPointers[ptrIdx++]);
+    }
+    for (size_t i = 0; i < p2; ++i) {
+        newNode->pointers_.push_back(mergedPointers[ptrIdx++]);
+    }
+    for (size_t i = 0; i < p3; ++i) {
+        rightNode->pointers_.push_back(mergedPointers[ptrIdx++]);
     } 
-    for (size_t i = border1 + 1; i < border2 + 1; ++i) {
-        newNode->pointers_.push_back(mergedPointers[i]);
+
+    size_t keyIndex = 0;
+    
+    for (size_t i = 0; i < p1 - 1; ++i) {
+        leftNode->keys_.push_back(mergedKeys[keyIndex]);
+        keyIndex++;
     }
-    for (size_t i = border2 + 1; i < overall + 1; ++i) {
-        rightNode->pointers_.push_back(mergedPointers[i]);
-    }
-    for (size_t i = 0; i < border1; ++i) {
-        leftNode->keys_.push_back(mergedKeys[i]);
-    }
-    for (size_t i = border1; i < border2; ++i) {
-        newNode->keys_.push_back(mergedKeys[i]);
-    }
-    for (size_t i = border2; i < overall; ++i) {
-        rightNode->keys_.push_back(mergedKeys[i]);
+    TKey parentKey1 = mergedKeys[keyIndex]; 
+    ++keyIndex;
+
+    for (size_t i = 0; i < p2 - 1; ++i) {
+        newNode->keys_.push_back(mergedKeys[keyIndex]);
+        ++keyIndex;
     }
 
-    parent->keys_.erase(parent->keys_.begin() + central_index);
-    parent->pointers_.erase(parent->pointers_.begin() + central_index + 1);
-    parent->keys_.insert(parent->keys_.begin() + central_index, newNode->keys_[0]);
-    parent->keys_.insert(parent->keys_.begin() + central_index + 1, rightNode->keys_[0]);
-    parent->pointers_.insert(parent->pointers_.begin() + central_index + 1, newNode);
-    parent->pointers_.insert(parent->pointers_.begin() + central_index + 2, rightNode);
-    std::cout << "splited inners" << std::endl;
-    std::cout << parent->keys_.size() << std::endl;
+    TKey parentKey2 = mergedKeys[keyIndex];
+    ++keyIndex; 
+
+    for (size_t i = 0; i < p3 - 1; ++i) {
+        rightNode->keys_.push_back(mergedKeys[keyIndex]);
+        ++keyIndex;
+    }
+    
+    parent->keys_.erase(parent->keys_.begin() + central_index - 1);
+    parent->pointers_.erase(parent->pointers_.begin() + central_index);
+
+    parent->keys_.insert(parent->keys_.begin() + central_index - 1, parentKey1);
+    parent->keys_.insert(parent->keys_.begin() + central_index, parentKey2);
+    
+    parent->pointers_.insert(parent->pointers_.begin() + central_index, newNode);
+    parent->pointers_.insert(parent->pointers_.begin() + central_index + 1, rightNode);
 
     if (parent->keys_.size() > maximumKeysInNode) {
-        std::cout << "aaaaaaaaaaaaaa" << std::endl;
-
         handleInnerOverflow(path, parent);
     }
 }
+
 
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 template<typename... Args>
 std::pair<typename BspTree<TKey, TValue, Compare, T>::BspTreeIterator, bool>
 BspTree<TKey, TValue, Compare, T>::emplace(Args&&... args)
 {
-    std::cout << "in emplace" << std::endl;
     TreeDataType data(std::forward<Args>(args)...);
     std::stack<std::pair<BspNodeMiddle*, size_t>> path;
     if (root_ == nullptr) {
@@ -1020,11 +1035,7 @@ BspTree<TKey, TValue, Compare, T>::emplace(Args&&... args)
         if (i < leaf->data_.size() && !compareKeys(leaf->data_[i].first, data.first) && !compareKeys(data.first, leaf->data_[i].first)) {
             return {BspTreeIterator(leaf, i), false};
         }
-        std::cout << i << std::endl;
-        std::cout << "almost inserted" << std::endl;
         leaf->data_.insert(leaf->data_.begin() + i, data);
-        std::cout << "inserted" << std::endl;
-
         ++size_;
         if (leaf->data_.size() > maximumKeysInRoot) {
             splitRoot();
@@ -1039,7 +1050,6 @@ BspTree<TKey, TValue, Compare, T>::emplace(Args&&... args)
             while (i < middle->keys_.size() && !compareKeys(data.first, middle->keys_[i])) {
                 ++i;
             }
-            std::cout << i << std::endl;
             path.push({middle, i});
             curr = middle->pointers_[i];
         }
@@ -1048,21 +1058,15 @@ BspTree<TKey, TValue, Compare, T>::emplace(Args&&... args)
         while (i < leaf->data_.size() && compareKeys(leaf->data_[i].first, data.first)) {
             ++i;
         }
-        std::cout << i << std::endl;
 
         if (i < leaf->data_.size() && !compareKeys(leaf->data_[i].first, data.first) && !compareKeys(data.first, leaf->data_[i].first)) {
             return {BspTreeIterator(leaf, i), false};
         }
-        std::cout << i << std::endl;
-        std::cout << "almost inserted" << std::endl;
         leaf->data_.insert(leaf->data_.begin() + i, data);
-        std::cout << "inserted" << std::endl;
         ++size_;
         if (leaf->data_.size() > maximumKeysInNode){
             handleLeafOverflow(path, leaf);
         }
-        std::cout << "help me" << std::endl;
-        std::cout << leaf->data_.size() << std::endl;
         return {BspTreeIterator(leaf, i), true};
     }
 
@@ -1107,7 +1111,6 @@ template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T
 typename BspTree<TKey, TValue, Compare, T>::BspTreeIterator
 BspTree<TKey, TValue, Compare, T>::erase(const TKey& key)
 {
-    printStructure();
     std::stack<std::pair<BspNodeMiddle*, size_t>> path;
     if (find(key) == end()) return end();
     
@@ -1115,7 +1118,6 @@ BspTree<TKey, TValue, Compare, T>::erase(const TKey& key)
     while (!cur->isTerminated) {
         auto* node = static_cast<BspNodeMiddle*>(cur);
         size_t i = 0;
-        std::cout << "abob" << std::endl;
         while (i < node->keys_.size() && !compareKeys(key, node->keys_[i])) {
             ++i;
         }
@@ -1123,12 +1125,9 @@ BspTree<TKey, TValue, Compare, T>::erase(const TKey& key)
         cur = node->pointers_[i];
     }
     BspNodeTerm* nodeTerm = static_cast<BspNodeTerm*>(cur);
-    std::cout << nodeTerm->data_[0].first << std::endl;
     size_t i = 0;
     while (i < nodeTerm->data_.size() && compareKeys(nodeTerm->data_[i].first, key)) {
         ++i;
-        std::cout << i << std::endl;
-
     }
     size_t indexToRemove = i;
     TKey nextKey;
@@ -1140,28 +1139,45 @@ BspTree<TKey, TValue, Compare, T>::erase(const TKey& key)
         nextKey = nodeTerm->next_->data_[0].first;
         hasNext = true;
     }
-    std::cout << "almost removed" << std::endl;
-    std::cout << indexToRemove << std::endl;
     nodeTerm->data_.erase(nodeTerm->data_.begin() + indexToRemove);
-    std::cout << "removed" << std::endl;
     --size_;
 
-    if (cur == root_)
-    return hasNext ? find(nextKey) : end();
+    if (cur == root_) {
+        if (nodeTerm->data_.size() == 0) {
+            delete this->root_;
+            root_ = nullptr;
+        }
+        return hasNext ? find(nextKey) : end();
+    }
     
     if (nodeTerm->data_.size() < minimumKeysInNode) {
-        if (!path.empty())
-        handleLackOfKeysLeaf(path, nodeTerm);
+        if (!path.empty()) {
+            handleLackOfKeysLeaf(path, nodeTerm);
+        }
     }
-    printStructure();
     return hasNext ? find(nextKey) : end();
 }
 
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::handleLackOfKeysLeaf(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeTerm* leaf)
 {
+    BspNodeMiddle * parent = path.top().first;
+    if (parent->keys_.size() == 1) {
+        BspNodeTerm * leftNode = static_cast<BspNodeTerm*>(parent->pointers_[0]);
+        BspNodeTerm * rightNode = static_cast<BspNodeTerm*>(parent->pointers_[1]);
+
+        leftNode->data_.insert(leftNode->data_.end(), rightNode->data_.begin(), rightNode->data_.end());
+        leftNode->next_ = rightNode->next_;
+        parent->keys_.clear();
+        parent->pointers_.pop_back();
+        delete rightNode;
+        if (parent == this->root_) {
+            this->root_ = leftNode;
+            delete parent;
+        }
+        return;
+    }
     if (tryBorrowLeaf(path, leaf)) {
-        std::cout << "leaf borrowed" << std::endl;
         return;
     }
     mergeLeaf3To2(path, leaf);
@@ -1178,8 +1194,24 @@ void BspTree<TKey, TValue, Compare, T>::handleLackOfKeysInner(std::stack<std::pa
         }
         return;
     }
+    BspNodeMiddle * parent = path.top().first;
+    if (parent->keys_.size() == 1) {
+        BspNodeMiddle * leftNode = static_cast<BspNodeMiddle*>(parent->pointers_[0]);
+        BspNodeMiddle * rightNode = static_cast<BspNodeMiddle*>(parent->pointers_[1]);
+
+        leftNode->keys_.push_back(parent->keys_[0]);
+
+        leftNode->keys_.insert(leftNode->keys_.end(), rightNode->keys_.begin(), rightNode->keys_.end());
+        leftNode->pointers_.insert(leftNode->pointers_.end(), rightNode->pointers_.begin(), rightNode->pointers_.end());
+
+        parent->keys_.clear();
+        parent->pointers_.pop_back();
+        delete rightNode;
+        path.pop();
+        handleLackOfKeysInner(path, parent);
+        return;
+    }
     if (tryBorrowInner(path, middle)) {
-        std::cout << "leaf borrowed inner" << std::endl;
         return;
     }
     mergeInner3To2(path, middle);
@@ -1193,11 +1225,11 @@ bool BspTree<TKey, TValue, Compare, T>::tryBorrowLeaf(std::stack<std::pair<BspNo
     BspNodeMiddle* parent = path.top().first;
     size_t childIndex = path.top().second;
 
-    if (childIndex + 1 < parent->keys_.size()) {
+    if (childIndex < parent->keys_.size()) {
         rightBrother = static_cast<BspNodeTerm*>(parent->pointers_[childIndex + 1]);
         if (rightBrother && rightBrother->data_.size() > minimumKeysInNode) {
             leaf->data_.push_back(rightBrother->data_[0]);
-            parent->keys_[childIndex] = rightBrother->data_[0].first;
+            parent->keys_[childIndex] = rightBrother->data_[1].first;
             rightBrother->data_.erase(rightBrother->data_.begin());
             return true;
         }
@@ -1221,25 +1253,25 @@ bool BspTree<TKey, TValue, Compare, T>::tryBorrowInner(std::stack<std::pair<BspN
     BspNodeMiddle* parent = path.top().first;
     size_t childIndex = path.top().second;
 
-    if (childIndex + 1 < parent->keys_.size()) {
+    if (childIndex < parent->keys_.size()) {
         BspNodeMiddle* rightBrother = static_cast<BspNodeMiddle*>(parent->pointers_[childIndex + 1]);
         if (rightBrother->keys_.size() > minimumKeysInNode) {
-            node->keys_.push_back(rightBrother->keys_[0]);
             node->pointers_.push_back(rightBrother->pointers_[0]);
+            rightBrother->pointers_.erase(rightBrother->pointers_.begin());
+            node->keys_.push_back(parent->keys_[childIndex]);
             parent->keys_[childIndex] = rightBrother->keys_[0];
             rightBrother->keys_.erase(rightBrother->keys_.begin());
-            rightBrother->pointers_.erase(rightBrother->pointers_.begin());
             return true;
         }
     }
     if (childIndex > 0) {
         BspNodeMiddle* leftBrother = static_cast<BspNodeMiddle*>(parent->pointers_[childIndex - 1]);
         if (leftBrother->keys_.size() > minimumKeysInNode) {
-            node->keys_.insert(node->keys_.begin(), leftBrother->keys_.back());
             node->pointers_.insert(node->pointers_.begin(), leftBrother->pointers_.back());
-            leftBrother->keys_.pop_back();
             leftBrother->pointers_.pop_back();
-            parent->keys_[childIndex - 1] = node->keys_[0];
+            node->keys_.insert(node->keys_.begin(), parent->keys_[childIndex - 1]);
+            parent->keys_[childIndex - 1] = leftBrother->keys_.back();
+            leftBrother->keys_.pop_back();
             return true;
         }
     }
@@ -1249,13 +1281,13 @@ bool BspTree<TKey, TValue, Compare, T>::tryBorrowInner(std::stack<std::pair<BspN
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::mergeLeaf3To2(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeTerm* leaf)
 {
-    std::cout << "leaf in merge" << std::endl;
     BspNodeMiddle* parent = path.top().first;
     size_t childIndex = path.top().second;
     path.pop();
 
     std::vector<TreeDataType> merged;
     BspNodeTerm* leftNode = nullptr, *centralNode = nullptr, *rightNode = nullptr;
+
     BspNodeTerm* rightBrother = (childIndex < parent->keys_.size()) ? static_cast<BspNodeTerm*>(parent->pointers_[childIndex + 1]) : nullptr;
     BspNodeTerm* leftBrother = (childIndex > 0) ? static_cast<BspNodeTerm*>(parent->pointers_[childIndex - 1]) : nullptr;
     size_t centralIndex = 0;
@@ -1300,7 +1332,6 @@ void BspTree<TKey, TValue, Compare, T>::mergeLeaf3To2(std::stack<std::pair<BspNo
     parent->pointers_.erase(parent->pointers_.begin() + centralIndex, parent->pointers_.begin() + centralIndex + 2);
     parent->keys_.insert(parent->keys_.begin() + (centralIndex - 1), rightNode->data_[0].first);
     parent->pointers_.insert(parent->pointers_.begin() + centralIndex, rightNode);
-    std::cout << "leaf merged" << std::endl;
     if (parent->keys_.size() < minimumKeysInNode) {
         handleLackOfKeysInner(path, parent);
     }
@@ -1309,7 +1340,6 @@ void BspTree<TKey, TValue, Compare, T>::mergeLeaf3To2(std::stack<std::pair<BspNo
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 void BspTree<TKey, TValue, Compare, T>::mergeInner3To2(std::stack<std::pair<BspNodeMiddle*, size_t>>& path, BspNodeMiddle* middle)
 {
-    std::cout << "in merge inner" << std::endl;
     BspNodeMiddle* parent = path.top().first;
     size_t childIndex = path.top().second;
     path.pop();
@@ -1340,42 +1370,51 @@ void BspTree<TKey, TValue, Compare, T>::mergeInner3To2(std::stack<std::pair<BspN
     }
 
     mergedKeys.insert(mergedKeys.end(), leftNode->keys_.begin(), leftNode->keys_.end());
+    mergedKeys.push_back(parent->keys_[centralIndex - 1]);
     mergedKeys.insert(mergedKeys.end(), centralNode->keys_.begin(), centralNode->keys_.end());
+    mergedKeys.push_back(parent->keys_[centralIndex]);
     mergedKeys.insert(mergedKeys.end(), rightNode->keys_.begin(), rightNode->keys_.end());
 
     mergedPointers.insert(mergedPointers.end(), leftNode->pointers_.begin(), leftNode->pointers_.end());
     mergedPointers.insert(mergedPointers.end(), centralNode->pointers_.begin(), centralNode->pointers_.end());
     mergedPointers.insert(mergedPointers.end(), rightNode->pointers_.begin(), rightNode->pointers_.end());
 
-    size_t overall = mergedKeys.size();
-    size_t border = overall / 2;
+    size_t overallPointers = mergedPointers.size();
+    size_t p1 = overallPointers / 2;
+    size_t p2 = overallPointers - p1;
 
     leftNode->keys_.clear();
     rightNode->keys_.clear();
     leftNode->pointers_.clear();
     rightNode->pointers_.clear();
 
-    for (size_t i = 0; i < border; ++i) {
-        leftNode->keys_.push_back(mergedKeys[i]);
-    }
-    for (size_t i = border; i < overall; ++i) {
-        rightNode->keys_.push_back(mergedKeys[i]);
-    }
-    for (size_t i = 0; i < border; ++i) {
+    for (size_t i = 0; i < p1; ++i) {
         leftNode->pointers_.push_back(mergedPointers[i]);
     }
-    for (size_t i = border; i < overall; ++i) {
+    for (size_t i = p1; i < overallPointers; ++i) {
         rightNode->pointers_.push_back(mergedPointers[i]);
+    }
+    size_t keyIndex = 0;
+    for (size_t i = 0; i < p1 - 1; ++i) {
+        leftNode->keys_.push_back(mergedKeys[keyIndex]);
+        ++keyIndex;
+    }
+    TKey toParent = mergedKeys[keyIndex];
+    ++keyIndex;
+
+    for (size_t i = 0; i < p2 - 1; ++i) {
+        rightNode->keys_.push_back(mergedKeys[keyIndex]);
+        ++keyIndex;
     }
 
     delete centralNode;
 
     parent->keys_.erase(parent->keys_.begin() + (centralIndex - 1), parent->keys_.begin() + (centralIndex + 1));
     parent->pointers_.erase(parent->pointers_.begin() + centralIndex, parent->pointers_.begin() + centralIndex + 2);
-    parent->keys_.insert(parent->keys_.begin() + (centralIndex - 1), rightNode->keys_[0]);
+
+    parent->keys_.insert(parent->keys_.begin() + (centralIndex - 1), toParent);
     parent->pointers_.insert(parent->pointers_.begin() + centralIndex, rightNode);
 
-    std::cout << "inner merged" << std::endl;
     if (parent->keys_.size() < minimumKeysInNode) {
         handleLackOfKeysInner(path, parent);
     }
@@ -1406,19 +1445,36 @@ template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T
 typename BspTree<TKey, TValue, Compare, T>::BspTreeIterator
 BspTree<TKey, TValue, Compare, T>::erase(BspTreeIterator beg, BspTreeIterator en)
 {
-    while (beg != en)
+    if (beg == end()) return end();
+    
+    bool hasEnd = (en != end());
+    TKey endKey;
+    if (hasEnd) endKey = en->first;
+
+    // Удаляем элементы, пока текущий ключ строго меньше конечного ключа
+    while (beg != end() && (!hasEnd || compareKeys(beg->first, endKey))) {
         beg = erase(beg);
-    return en;
+    }
+    return beg;
 }
 
 template<typename TKey, typename TValue, comparator<TKey> Compare, std::size_t T>
 typename BspTree<TKey, TValue, Compare, T>::BspTreeIterator
 BspTree<TKey, TValue, Compare, T>::erase(BspTreeConstIterator beg, BspTreeConstIterator en)
 {
-    while (beg != en)
-        beg = erase(beg);
-    return BspTreeIterator(nullptr, 0);
+    if (beg == end()) return end();
+    
+    bool hasEnd = (en != end());
+    TKey endKey;
+    if (hasEnd) endKey = en->first;
+
+    BspTreeIterator current(const_cast<BspNodeTerm*>(beg.node_), beg.index_);
+    while (current != end() && (!hasEnd || compareKeys(current->first, endKey))) {
+        current = erase(current);
+    }
+    return current;
 }
+
 // endregion
 
 // region debug printing
