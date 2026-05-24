@@ -8,6 +8,32 @@ IndexManager::~IndexManager() {
     save();
 }
 
+void IndexManager::load() {
+    if (std::filesystem::exists(filePath_)) {
+        std::ifstream file(filePath_, std::ios::binary);
+        if (!file.is_open()) {
+            throw IndexError("Failed to open file");
+        }
+        file.close();
+    } else {
+        std::filesystem::path path(filePath_);
+        if (!path.parent_path().empty()) {
+            std::filesystem::create_directories(path.parent_path());
+        }
+        std::ofstream file(filePath_, std::ios::binary);
+        if (!file.is_open()) {
+            throw IndexError("Failed to create index file: " + filePath_);
+        }
+        file.close()
+    }
+}
+
+void IndexManager::save() {
+    std::ifstream file(filePath_, std::ios::binary);
+    file.close();
+
+}
+
 void IndexManager::insertKey(const Value& key, RecordID rID) {
     if (val::isNull(key)) {
         throw IndexError("Cannot insert NULL into INDEXED column");

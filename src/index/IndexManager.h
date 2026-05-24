@@ -11,7 +11,7 @@ public:
     // Открывает файл индекса. Если файл существует — загружает дерево.
     // Если нет — создаёт пустое дерево и файл.
     // filePath пример: "data/mydb/users_id.idx"
-    IndexManager(const std::string& filePath);
+    explicit IndexManager(const std::string& filePath);
 
     // Вставить ключ -> RecordID (вызывается при INSERT или UPDATE)
     void insertKey(const Value& key, RecordID rID);
@@ -35,6 +35,12 @@ private:
 
     void load(); // читает файл -> заполняет дерево
     void save(); // сериализует дерево -> пишет в файл
+
+    template<typename TKey, typename TValue>
+    void serializeTree(std::ostream& file, BspTree<TKey, TValue>& tree);
+    
+    template<typename TKey, typename TValue>
+    void deserializeTree(std::istream& file, BspTree<TKey, TValue>& tree);
 };
 
 #endif // DBMS_PAIN_INDEXMANAGER_H
