@@ -1,9 +1,10 @@
 #ifndef DBMS_PAIN_INDEXMANAGER_H
 #define DBMS_PAIN_INDEXMANAGER_H
 #include <string>
-
 #include "BStarPlusTree.h"
 #include "storage/RecordManager.h"
+#include "utils/Error.h"
+#include <functional>
 
 class IndexManager {
 public:
@@ -13,14 +14,14 @@ public:
     IndexManager(const std::string& filePath);
 
     // Вставить ключ -> RecordID (вызывается при INSERT или UPDATE)
-    void insert(const Value& key, RecordID rID);
+    void insertKey(const Value& key, RecordID rID);
 
     // Найти RecordID по ключу (вызывается при SELECT)
     // Бросает IndexError если ключ не найден
-    RecordID find(const Value& key);
+    RecordID findKey(const Value& key);
 
     // Удалить ключ (вызывается при DELETE)
-    void remove(const Value& key);
+    void removeKey(const Value& key);
 
     // Деструктор должен сохранять дерево на диск
     ~IndexManager();
@@ -29,8 +30,8 @@ private:
     std::string filePath_;
 
     // все функции определяют тип Value и делешируют в нужное дерево
-    std::unique_ptr<BStarPlusTree<int, RecordID>> intTree_;
-    std::unique_ptr<BStarPlusTree<std::string, RecordID>> strTree_;
+    std::unique_ptr<BspTree<int, RecordID>> intTree_;
+    std::unique_ptr<BspTree<std::string, RecordID>> strTree_;
 
     void load(); // читает файл -> заполняет дерево
     void save(); // сериализует дерево -> пишет в файл
