@@ -4,19 +4,23 @@ project(BStarPlusTree LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Собираем все исходники из папки src
-file(GLOB SOURCES "src/*.cpp")
-
 # Создаем исполняемый файл
-add_executable(${PROJECT_NAME} ${SOURCES} include/BStarPlusTree.h
+add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/tests.cpp)
+    src/tests.cpp
+    src/IndexManager.cpp
+    ../storage/RecordManager.cpp
+    ../utils/Error.h
+)
 
-# Указываем папку с заголовочными файлами проекта
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+# Указываем ВСЕ необходимые директории с заголовками
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}          # Корень проекта (где лежит CMakeLists.txt)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include  # Для BStarPlusTree.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../utils    # Для Error.h, Value.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../storage  # Для RecordManager.h, PageManager.h
+)
 
-# Находим Boost (для static_vector достаточно только заголовочных файлов)
+# Находим Boost
 find_package(Boost REQUIRED)
-
-# Современный и безопасный способ линковки заголовочных файлов Boost
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers)

@@ -2,8 +2,10 @@
 #define DBMS_PAIN_INDEXMANAGER_H
 #include <string>
 #include "BStarPlusTree.h"
-#include "storage/RecordManager.h"
-#include "utils/Error.h"
+#include "../storage/RecordManager.h"
+#include "../utils/Error.h"
+#include <fstream>
+#include <filesystem>
 #include <functional>
 
 class IndexManager {

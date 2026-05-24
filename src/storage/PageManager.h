@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <fstream>
 
 constexpr int PAGE_SIZE = 4096;
 using Page = std::array<char, PAGE_SIZE>;
@@ -31,7 +32,7 @@ public:
 
 private:
   std::string filePath_;
-  std::fstream file_;
+  std::ofstream file_;
   int32_t page_count_;
 
   void init_file();   // создать файл если не существует
