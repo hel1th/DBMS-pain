@@ -9,12 +9,12 @@
 #include "utils/Value.h"
 
 // Идентификатор записи = номер страницы + номер слота на странице
-struct RecordId {
-    page_id_t page_id;
-    int16_t   slot_id;
+struct RecordID {
+    page_id_t pageID;
+    int16_t   slotID;
 
-    bool operator==(const RecordId& o) const {
-        return page_id == o.page_id && slot_id == o.slot_id;
+    bool operator==(const RecordID& o) const {
+        return pageID == o.pageID && slotID == o.slotID;
     }
 };
 
@@ -43,7 +43,7 @@ private:
     const Schema& schema_;
 
     // Найти страницу с местом для записи нужного размера
-    page_id_t find_page_with_space(size_t needed_bytes);
+    pageID_t find_page_with_space(size_t needed_bytes);
 
     // Работа со слотами внутри страницы
     int16_t  get_slot_count(const Page& page);
