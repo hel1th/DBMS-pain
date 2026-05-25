@@ -1,6 +1,0 @@
-#ifndef DBMS_PAIN_SYSTEMCATALOG_H
-#define DBMS_PAIN_SYSTEMCATALOG_H
-
-class SystemCatalog {};
-
-#endif // DBMS_PAIN_SYSTEMCATALOG_H
