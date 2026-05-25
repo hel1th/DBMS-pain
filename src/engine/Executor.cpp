@@ -147,13 +147,13 @@ QueryResult Executor::execDelete(const DeleteQuery& q) {
     int affected = 0;
     std::vector<RecordID> toDelete;
 
-    tbl.scan([&](RecordID rid, const std::vector<Value>& record) {
+    tbl.scan([&](RecordID recordID, const std::vector<Value>& record) {
         if (matches(record, schema, q.where.get()))
-            toDelete.push_back(rid);
+            toDelete.push_back(recordID);
     });
 
-    for (auto rid : toDelete) {
-        tbl.remove(rid);
+    for (auto recordID : toDelete) {
+        tbl.remove(recordID);
         affected++;
     }
 
@@ -168,7 +168,7 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
     int affected = 0;
     std::vector<std::pair<RecordID, std::vector<Value>>> toUpdate;
 
-    tbl.scan([&](RecordID rid, const std::vector<Value>& record) {
+    tbl.scan([&](RecordID recordID, const std::vector<Value>& record) {
         if (!matches(record, schema, q.where.get()))
             return;
 
@@ -179,11 +179,11 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
                 throw SemanticError("Unknown column: " + colName);
             newRecord[idx] = resolve(expr.get(), record, schema);
         }
-        toUpdate.emplace_back(rid, std::move(newRecord));
+        toUpdate.emplace_back(recordID, std::move(newRecord));
     });
 
-    for (auto& [rid, newRecord] : toUpdate) {
-        tbl.update(rid, newRecord);
+    for (auto& [recordID, newRecord] : toUpdate) {
+        tbl.update(recordID, newRecord);
         affected++;
     }
 
@@ -195,9 +195,9 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
     Table&    tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
-    // индексная оптимизация: WHERE indexed_col == value
-    int idxCol = schema.indexedColumn();
-    if (idxCol != -1 && q.where && q.where->kind == NodeKind::BINARY_OP) {
+    // WHERE indexed_col == value
+    if (int idxCol = schema.indexedColumn();
+        idxCol != -1 && q.where && q.where->kind == NodeKind::BINARY_OP) {
         auto* bin = dynamic_cast<const BinaryOp*>(q.where.get());
         if (bin->op == "==") {
             bool leftIsCol = bin->left->kind  == NodeKind::COLUMN_REF;
@@ -210,8 +210,8 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
                 if (schema.columnIndex(ref->name) == idxCol) {
                     Value key = resolve(valNode, {}, schema);
                     try {
-                        RecordID rid = tbl.findByIndex(ref->name, key);
-                        auto record  = tbl.fetch(rid);
+                        RecordID recordID = tbl.findByIndex(ref->name, key);
+                        auto record  = tbl.fetch(recordID);
                         std::vector<Row> rows;
                         if (q.aggregates.empty())
                             rows.push_back(project(record, schema, q));
@@ -224,7 +224,6 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
         }
     }
 
-    // задание 12: агрегаты
     if (!q.aggregates.empty()) {
         // аккумуляторы для каждого агрегата
         struct Acc {

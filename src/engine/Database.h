@@ -10,7 +10,7 @@
 
 class Database {
 public:
-    Database(std::string  db_path, std::string  name);
+    explicit Database(const std::string& db_path, const std::string& name);
     // DDL (data definition language)
     void createTable(const Schema& schema);
     void dropTable(const std::string& name);
@@ -28,6 +28,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Table>> tables_;
 
     void loadTables(); // читает список таблиц из каталога при старте
+    void saveSchema();
 };
 
 
