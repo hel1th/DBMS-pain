@@ -37,13 +37,13 @@ std::string BinaryOp::toString() const {
 AndOp::AndOp(std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) :
     ASTNode(NodeKind::AND_OP), left(std::move(l)), right(std::move(r)) {}
 std::string AndOp::toString() const {
-    return "(AND " + left->toString() + " " + right->toString() + ")";
+    return "(" + left->toString() + " AND " + right->toString() + ")";
 }
 
 OrOp::OrOp(std::unique_ptr<ASTNode> l, std::unique_ptr<ASTNode> r) :
     ASTNode(NodeKind::OR_OP), left(std::move(l)), right(std::move(r)) {}
 std::string OrOp::toString() const {
-    return "(OR " + left->toString() + " " + right->toString() + ")";
+    return "(" + left->toString() + " OR " + right->toString() + ")";
 }
 
 BetweenOp::BetweenOp(std::unique_ptr<ASTNode> e, std::unique_ptr<ASTNode> l,
