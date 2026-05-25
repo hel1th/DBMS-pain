@@ -39,8 +39,3 @@
 
 # debug information files
 *.dwo
-
-.idea
-.vscode
-*build*/
-.*cache*
