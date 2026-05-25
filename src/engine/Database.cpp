@@ -1,6 +1,8 @@
 #include "Database.h"
-Database::Database(const std::string& db_path, const std::string& name)
-    : name_(name), dbPath_(db_path)
+
+#include <utility>
+Database::Database(std::string  db_path, std::string name)
+    : name_(std::move(name)), dbPath_(std::move(db_path))
 {
     loadTables();
 }

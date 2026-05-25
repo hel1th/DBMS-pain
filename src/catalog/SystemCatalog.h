@@ -6,7 +6,7 @@
 
 class SystemCatalog {
 public:
-    explicit SystemCatalog(const std::string& dataDir);
+    explicit SystemCatalog(std::string  dataDir);
 
     // вызывается при CREATE DATABASE
     void addDatabase(const std::string& name);

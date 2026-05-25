@@ -3,11 +3,12 @@
 #include <fstream>
 #include <algorithm>
 #include <filesystem>
+#include <utility>
 
 const std::string CatalogFile = "/catalog.dat";
 
-SystemCatalog::SystemCatalog(const std::string& dataDir) : dataDir_(dataDir) {
-    std::filesystem::create_directories(dataDir + CatalogFile);
+SystemCatalog::SystemCatalog(std::string  dataDir) : dataDir_(std::move(dataDir)) {
+    std::filesystem::create_directories(dataDir_);
     load();
 }
 
