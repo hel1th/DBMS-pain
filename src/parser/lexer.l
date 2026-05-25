@@ -1,6 +1,6 @@
 %{
-#include "SqlScanner.h"
-#include "parser.hpp"
+#include "parser/SqlScanner.h"
+#include "parser.h"
 
 #define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
 

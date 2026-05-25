@@ -10,16 +10,16 @@
 %lex-param { SqlScanner& scanner }
 
 %code requires {
-    #include "AST.h"
+    #include "parser/AST.h"
     #include <memory>
     #include <vector>
     #include <string>
-    #include "../utils/Value.h"
+    #include "utils/Value.h"
     class SqlScanner;
 }
 
 %code {
-    #include "SqlScanner.h"
+    #include "parser/SqlScanner.h"
         static int yylex(yy::parser::semantic_type* yylval,
                  yy::parser::location_type* yyloc,
                  std::unique_ptr<ASTNode>& /*result*/,

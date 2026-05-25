@@ -2,8 +2,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "AST.h"
-#include "SqlParser.h"
+#include "parser/AST.h"
+#include "parser/SqlParser.h"
 
 
 int main(int argc, char* argv[]) {

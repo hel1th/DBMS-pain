@@ -3,7 +3,7 @@
 #include <istream>
 #include <memory>
 
-#include "parser.hpp"
+#include "parser.h"
 
 #ifndef yyFlexLexer
 #define yyFlexLexer SqlScannerFlexLexer
@@ -13,7 +13,6 @@
 class SqlScanner : public SqlScannerFlexLexer {
 public:
     explicit SqlScanner(std::istream& in) : SqlScannerFlexLexer(&in) {}
-    
-    int yylex(yy::parser::semantic_type* yylval,
-              yy::parser::location_type* yyloc);
+
+    int yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc);
 };
