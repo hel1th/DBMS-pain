@@ -16,19 +16,19 @@ public:
   ~PageManager();
 
   // Прочитать страницу с диска в память
-  Page ReadPage(PageID_t pageID);
+  Page readPage(PageID_t pageID);
 
   // Записать страницу из памяти на диск
-  void WritePage(PageID_t pageID, const Page &page);
+  void writePage(PageID_t pageID, const Page &page);
 
   // Выделить новую страницу (расширить файл)
-  PageID_t AllocatePage();
+  PageID_t allocatePage();
 
   // Пометить страницу как свободную
-  void FreePage(PageID_t pageID);
+  void freePage(PageID_t pageID);
 
   // Сколько страниц в файле
-  int32_t PageCount() const;
+  int32_t pageCount() const;
 
 private:
   std::string filePath_;
@@ -36,9 +36,9 @@ private:
   int32_t pageCount_;
   int32_t freeListHead_;
 
-  void InitFile();   // создать файл если не существует
-  void LoadHeader(); // прочитать PageCount из заголовка
-  void SaveHeader(); // сохранить PageCount в заголовок
+  void initFile();   // создать файл если не существует
+  void loadHeader(); // прочитать pageCount из заголовка
+  void saveHeader(); // сохранить PageCount в заголовок
 };
 
 #endif // DBMS_PAIN_PAGEMANAGER_H

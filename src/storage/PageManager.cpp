@@ -28,21 +28,25 @@ PageManager::PageManager(const std::string &filePath)
     
     file_.open(filePath_, std::ios::in | std::ios::out | std::ios::binary);
     
+    if (!file_.is_open()) {
+        throw std::runtime_error("Failed to open file: " + filePath_);
+    }
+
     if (!fileExists) {
-        InitFile();
+        initFile();
     } else {
-        LoadHeader();
+        loadHeader();
     }
 }
 
 PageManager::~PageManager() {
     if (file_.is_open()) {
-        SaveHeader();
+        saveHeader();
         file_.close();
     }
 }
 
-void PageManager::InitFile() {
+void PageManager::initFile() {
     if (file_.is_open()) {
         file_.close();
     }
@@ -76,7 +80,7 @@ void PageManager::InitFile() {
     file_.flush();
 }
 
-void PageManager::LoadHeader() {
+void PageManager::loadHeader() {
     // Перемещаемся в начало файла
     file_.seekg(0, std::ios::beg);
     
@@ -101,7 +105,7 @@ void PageManager::LoadHeader() {
     std::memcpy(&freeListHead_, headerPage.data() + HEADER_FREE_LIST_OFFSET, sizeof(freeListHead_));
 }
 
-void PageManager::SaveHeader() {
+void PageManager::saveHeader() {
     // Читаем текущую заголовочную страницу
     Page headerPage{};
     file_.seekg(0, std::ios::beg);
@@ -110,20 +114,19 @@ void PageManager::SaveHeader() {
     if (!file_.good()) {
         // Если не удалось прочитать, создаём новую
         headerPage = Page{};
-        uint32_t magic = MAGIC_NUMBER;
-        std::memcpy(headerPage.data() + HEADER_MAGIC_OFFSET, &magic, sizeof(magic));
     }
     
+    uint32_t magic = MAGIC_NUMBER;
+    std::memcpy(headerPage.data() + HEADER_MAGIC_OFFSET, &magic, sizeof(magic));
     std::memcpy(headerPage.data() + HEADER_PAGE_COUNT_OFFSET, &pageCount_, sizeof(pageCount_));
     std::memcpy(headerPage.data() + HEADER_FREE_LIST_OFFSET, &freeListHead_, sizeof(freeListHead_));
     
-    // Записываем обратно
     file_.seekp(0, std::ios::beg);
     file_.write(headerPage.data(), PAGE_SIZE);
     file_.flush();
 }
 
-Page PageManager::ReadPage(PageID_t pageID) {
+Page PageManager::readPage(PageID_t pageID) {
     if (pageID < 0 || pageID >= pageCount_) {
         throw std::out_of_range("Invalid page_id: " + std::to_string(pageID) + 
                                ". Page count: " + std::to_string(pageCount_));
@@ -136,7 +139,12 @@ Page PageManager::ReadPage(PageID_t pageID) {
     
     file_.seekg(offset, std::ios::beg);
     file_.read(page.data(), PAGE_SIZE);
-    
+
+    if (file_.gcount() != PAGE_SIZE) {
+        throw std::runtime_error("Failed to read full page " + std::to_string(pageID) +
+                                 ": read " + std::to_string(file_.gcount()) + " bytes");
+    }
+
     if (!file_.good()) {
         throw std::runtime_error("Failed to read page " + std::to_string(pageID));
     }
@@ -144,7 +152,7 @@ Page PageManager::ReadPage(PageID_t pageID) {
     return page;
 }
 
-void PageManager::WritePage(PageID_t pageID, const Page &page) {
+void PageManager::writePage(PageID_t pageID, const Page &page) {
     if (pageID < 0 || pageID >= pageCount_) {
         throw std::out_of_range("Invalid pageID: " + std::to_string(pageID) + 
                                ". Page count: " + std::to_string(pageCount_));
@@ -162,7 +170,7 @@ void PageManager::WritePage(PageID_t pageID, const Page &page) {
     }
 }
 
-PageID_t PageManager::AllocatePage() {
+PageID_t PageManager::allocatePage() {
     PageID_t newPageId;
     
     if (freeListHead_ != -1) {
@@ -170,17 +178,17 @@ PageID_t PageManager::AllocatePage() {
         newPageId = freeListHead_;
         
         // Читаем эту страницу, чтобы получить nextPage
-        Page freePage = ReadPage(newPageId);
+        Page freePage = readPage(newPageId);
         
         // Обновляем free_list_head_ на следующую свободную страницу
         std::memcpy(&freeListHead_, freePage.data() + PAGE_NEXT_PAGE_OFFSET, sizeof(freeListHead_));
         
         // Сохраняем обновлённый заголовок
-        SaveHeader();
+        saveHeader();
         
         // Очищаем страницу перед использованием
         Page emptyPage{};
-        WritePage(newPageId, emptyPage);
+        writePage(newPageId, emptyPage);
     } else {
         // Нет свободных страниц - расширяем файл
         newPageId = pageCount_;
@@ -193,13 +201,13 @@ PageID_t PageManager::AllocatePage() {
         file_.flush();
         
         // Сохраняем обновлённый pageCount
-        SaveHeader();
+        saveHeader();
     }
     
     return newPageId;
 }
 
-void PageManager::FreePage(PageID_t pageID) {
+void PageManager::freePage(PageID_t pageID) {
     // Нельзя освобождать заголовочную страницу
     if (pageID == 0) {
         throw std::runtime_error("Cannot free header page (page 0)");
@@ -213,21 +221,21 @@ void PageManager::FreePage(PageID_t pageID) {
         throw std::runtime_error("Page already in free list");
     }
     
-    Page freePage = ReadPage(pageID);
+    Page freePage = readPage(pageID);
     
     // Устанавливаем nextPage этой страницы на текущую голову списка
     std::memcpy(freePage.data() + PAGE_NEXT_PAGE_OFFSET, &freeListHead_, sizeof(freeListHead_));
     
     // Записываем обновлённую страницу
-    WritePage(pageID, freePage);
+    writePage(pageID, freePage);
     
     // Обновляем голову списка
     freeListHead_ = pageID;
     
     // Сохраняем заголовок
-    SaveHeader();
+    saveHeader();
 }
 
-int32_t PageManager::PageCount() const {
+int32_t PageManager::pageCount() const {
     return pageCount_;
 }

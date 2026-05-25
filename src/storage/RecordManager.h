@@ -33,7 +33,7 @@ public:
 
     void Scan(std::function<void(RecordID, const std::vector<Value>&)> callback);
     
-    bool IsValid(RecordID recordID) const;
+    bool isValid(RecordID recordID) const;
     size_t GetRecordCount() const;
 
 private:
