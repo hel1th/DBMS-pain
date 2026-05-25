@@ -76,6 +76,5 @@ target_include_directories(DBMS_pain PRIVATE
         src/index/include
         ${CMAKE_CURRENT_BINARY_DIR}
         ${Boost_INCLUDE_DIRS}
+        ${FLEX_INCLUDE_DIRS}
 )
-
-add_subdirectory(tests)
