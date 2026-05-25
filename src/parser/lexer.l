@@ -1,22 +1,18 @@
 %{
-#include "parser.h"  // генерируется Bison
-#include "AST.h"
-#include <string>
-#include <cstring>
+#include "SqlScanner.h"
+#include "parser.hpp"
 
-// как Bison будет получать токены
-#define YY_DECL int yyFlexLexer::yylex(yy::parser::semantic_type* yylval,
-                                        yy::parser::location_type* yylloc)
+#define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
 
-// Глобальный указатель на текущий лексер (для yyerror)
-extern yyFlexLexer* current_lexer;
-
+void yyerror(const char* msg);
 %}
 
 %option c++
 %option noyywrap
 %option yylineno
 %option outfile="lexer.cpp"
+%option yyclass="SqlScanner"
+%option prefix="SqlScanner"
 
 /* Регулярные выражения */
 DIGIT           [0-9]
@@ -55,6 +51,8 @@ WHITESPACE      [ \t\r\n]+
 (?i:COUNT)      { return yy::parser::token::COUNT; }
 (?i:AVG)        { return yy::parser::token::AVG; }
 (?i:DEFAULT)    { return yy::parser::token::DEFAULT; }
+"int"           { return yy::parser::token::INT_TYPE; }
+"string"        { return yy::parser::token::STRING_TYPE; }
 
  /* Операторы */
 "=="            { return yy::parser::token::EQ; }
@@ -73,11 +71,11 @@ WHITESPACE      [ \t\r\n]+
 "*"             { return yy::parser::token::STAR; }
 
  /* Литералы */
-{INTEGER}       { 
+{INTEGER}       {
                     yylval->emplace<int>(std::stoi(yytext));
-                    return yy::parser::token::INTEGER; 
+                    return yy::parser::token::INTEGER;
                 }
-{STRING}        { 
+{STRING}        {
                     std::string s(yytext + 1);
                     s.pop_back();  // убираем последнюю кавычку
                     // Обработка экранирования
@@ -87,31 +85,24 @@ WHITESPACE      [ \t\r\n]+
                         pos++;
                     }
                     yylval->emplace<std::string>(s);
-                    return yy::parser::token::STRING; 
+                    return yy::parser::token::STRING;
                 }
-{IDENT}         { 
+{IDENT}         {
                     yylval->emplace<std::string>(yytext);
-                    return yy::parser::token::IDENTIFIER; 
+                    return yy::parser::token::IDENTIFIER;
                 }
 
  /* Пропуск пробелов и переводов строк */
 {WHITESPACE}    { /* ignore */ }
 
  /* Обработка ошибок */
-.               { 
+.               {
                     std::string msg = "Unexpected character: ";
                     msg += yytext;
-                    yylloc->initialize();
-                    yylloc->lines(yylineno);
-                    yy::parser::error(*yylloc, msg);
+                    yyloc->initialize();
+                    yyloc->lines(yylineno);
+                    yyerror(msg.c_str());
                     return yy::parser::token::YYerror;
                 }
 
 %%
-
-// Реализация yyerror (из Bison)
-namespace yy {
-    void parser::error(const location& loc, const std::string& msg) {
-        std::cerr << "Error at line " << loc.begin.line << ": " << msg << std::endl;
-    }
-}
