@@ -5,6 +5,8 @@
 #include <vector>
 #include <fstream>
 #include <mutex>
+#include <filesystem>
+#include "../utils/Error.h"
 
 enum class RevertActionType : uint8_t {
     REVERT_INSERT = 1,
@@ -16,7 +18,7 @@ struct UndoLogRecord {
     uint64_t timeMS;
     std::string tableName;
     RevertActionType actionType;
-    std::vector<uint8_t> key;
+    std::vector<uint8_t> keys;
     std::vector<uint8_t> oldRowData;
 };
 
@@ -29,9 +31,9 @@ class UndoLogManager {
         UndoLogManager(const UndoLogManager&) = delete;
         UndoLogManager& operator=(const UndoLogManager&) = delete;
 
-        void logUndoInsert(const std::string& tableName, uint64_t timeMs, std::vector<uint8_t>);
-        void logUndoDelete(const std::string& tableName, uint64_t timeMs, uint64_t rowId, std::vector<uint8_t>& keys, std::vector<uint8_t>& oldRowData);
-        void logUndoUpdate(const std::string& tableName, uint64_t timeMs, std::vector<uint8_t> keys, std::vector<uint8_t> oldRowData);
+        void logUndoInsert(const std::string& tableName, uint64_t timeMs, std::vector<uint8_t>& keys);
+        void logUndoDelete(const std::string& tableName, uint64_t timeMs, std::vector<uint8_t>& keys, std::vector<uint8_t>& oldRowData);
+        void logUndoUpdate(const std::string& tableName, uint64_t timeMs, std::vector<uint8_t>& keys, std::vector<uint8_t>& oldRowData);
 
         std::vector<UndoLogRecord> getRecordsToRevert(const std::string& tableName, uint64_t timeMs);
 
@@ -48,7 +50,7 @@ class UndoLogManager {
         UndoLogRecord readRecord(std::ifstream& in);
 
         void writeBinaryString(std::ostream& out, const std::string& str);
-        void writebBinary(std::ostream& out, const std::vector<uint8_t>& bytes);
+        void writeBinary(std::ostream& out, const std::vector<uint8_t>& bytes);
 
         std::string readBinaryString(std::istream& in);
         std::vector<uint8_t> readBinary(std::istream& in);
