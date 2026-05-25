@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include "../engine/Schema.h" // ColType
-#include "../utils/Value.h"
+#include "engine/Schema.h" // ColType
+#include "utils/Value.h"
 
 
 // Виды узлов
