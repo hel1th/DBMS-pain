@@ -5,16 +5,16 @@
 
 #include "PageManager.h"
 #include "Serializer.h"
-#include "engine/Schema.h"
-#include "utils/Value.h"
+#include "../engine/Schema.h"
+#include "../utils/Value.h"
 
 // Идентификатор записи = номер страницы + номер слота на странице
-struct RecordId {
-    page_id_t page_id;
-    int16_t   slot_id;
+struct RecordID {
+    page_id_t pageID;
+    int16_t   slotID;
 
-    bool operator==(const RecordId& o) const {
-        return page_id == o.page_id && slot_id == o.slot_id;
+    bool operator==(const RecordID& o) const {
+        return pageID == o.pageID && slotID == o.slotID;
     }
 };
 
@@ -23,20 +23,20 @@ public:
     RecordManager(PageManager& pm, const Schema& schema);
 
     // Вставить запись, вернуть её RecordId
-    RecordId insert(const std::vector<Value>& record);
+    RecordID insert(const std::vector<Value>& record);
 
     // Прочитать запись по RecordId
-    std::vector<Value> fetch(RecordId rid);
+    std::vector<Value> fetch(RecordID rid);
 
     // Обновить запись
-    void update(RecordId rid, const std::vector<Value>& record);
+    void update(RecordID rid, const std::vector<Value>& record);
 
     // Удалить запись (пометить слот как свободный)
-    void remove(RecordId rid);
+    void remove(RecordID rid);
 
     // Итерация по всем записям (для full scan)
     // Вызывает callback для каждой живой записи
-    void scan(std::function<void(RecordId, const std::vector<Value>&)> cb);
+    void scan(std::function<void(RecordID, const std::vector<Value>&)> cb);
 
 private:
     PageManager& pm_;
