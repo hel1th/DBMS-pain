@@ -1,9 +1,7 @@
 #include "RecordManager.h"
 #include <cstring>
 #include <stdexcept>
-#include <algorithm>
 
-namespace {
 
 // Константы страницы
 constexpr int16_t PAGE_HEADER_SIZE = 16;
@@ -11,70 +9,43 @@ constexpr int16_t PAGE_NEXT_PAGE_OFFSET = 0;      // 4 байта (PageID_t)
 constexpr int16_t PAGE_RECORD_COUNT_OFFSET = 4;   // 2 байта (int16_t)
 constexpr int16_t PAGE_FREE_OFFSET_OFFSET = 6;    // 2 байта (int16_t)
 constexpr int16_t PAGE_FLAGS_OFFSET = 8;          // 4 байта (int32_t)
-
 constexpr int16_t SLOT_SIZE = 8;  // offset(2) + size(2) + reserved(4)
 constexpr int16_t INVALID_SLOT = -1;
 
-// Порог фрагментации: компактифицировать если > 30% места занято удалёнными записями
-constexpr double COMPACT_THRESHOLD = 0.3;
-
-} // anonymous namespace
 
 RecordManager::RecordManager(PageManager& pm, const Schema& schema)
     : pm_(pm), schema_(schema) {}
 
-// ========== Публичные методы ==========
 
-RecordID RecordManager::Insert(const std::vector<Value>& record) {
-    // 1. Сериализуем запись
+RecordID RecordManager::insert(const std::vector<Value>& record) {
     std::vector<char> data = Serializer::serialize(record, schema_);
     size_t recordSize = data.size();
     
-    // 2. Находим страницу с местом
-    PageID_t pageID = FindPageWithSpace(recordSize);
-    
-    // 3. Читаем страницу
+    PageID_t pageID = findPageWithSpace(recordSize);
     Page page = pm_.readPage(pageID);
+
+    int16_t insertPosition;
+    try {
+        insertPosition = findInsertPosition(page, recordSize);
+    } catch (const std::runtime_error&) {
+        compactPage(page);
+        insertPosition = findInsertPosition(page, recordSize);
+    }
     
-    // 4. Вставляем запись
+    int16_t slotIndex = findFreeSlotIndex(page);
     RecordID recordID;
     recordID.pageID = pageID;
     
-    // Находим свободный слот или создаём новый
-    int16_t slotIndex = FindFreeSlotIndex(page);
-    if (slotIndex == -1) {
-        // Новый слот в конец
-        int16_t recordCount = GetSlotCount(page);
-        slotIndex = recordCount;
-        SetRecordCount(page, recordCount + 1);
+    if (slotIndex == INVALID_SLOT) {
+        slotIndex = getSlotCount(page);
+        setRecordCount(page, getSlotCount(page) + 1);
     }
     
-    // Вычисляем смещение для записи (данные растут с конца страницы)
-    int16_t freeOffset = GetFreeOffset(page);
-    int16_t newFreeOffset = freeOffset - static_cast<int16_t>(recordSize);
+    std::memcpy(page.data() + insertPosition, data.data(), recordSize);
     
-    // Проверяем, что не перекрываемся со слотами
-    int16_t slotsEnd = PAGE_HEADER_SIZE + (GetSlotCount(page) + 1) * SLOT_SIZE;
-    if (newFreeOffset < slotsEnd) {
-        // Недостаточно места — компактифицируем и пробуем снова
-        CompactPage(page);
-        freeOffset = GetFreeOffset(page);
-        newFreeOffset = freeOffset - static_cast<int16_t>(recordSize);
-        
-        if (newFreeOffset < PAGE_HEADER_SIZE + (GetSlotCount(page) + 1) * SLOT_SIZE) {
-            throw std::runtime_error("Record too large even after compaction");
-        }
-    }
-    
-    std::memcpy(page.data() + newFreeOffset, data.data(), recordSize);
-    
-    Slot slot;
-    slot.offset = newFreeOffset;
-    slot.size = static_cast<int16_t>(recordSize);
-    slot.reserved = 0;
-    SetSlot(page, slotIndex, slot);
-    
-    SetFreeOffset(page, newFreeOffset);
+    Slot slot{insertPosition, static_cast<int16_t>(recordSize), 0};
+    setSlot(page, slotIndex, slot);
+    setFreeOffset(page, insertPosition);
     
     pm_.writePage(pageID, page);
     
@@ -82,310 +53,85 @@ RecordID RecordManager::Insert(const std::vector<Value>& record) {
     return recordID;
 }
 
-std::vector<Value> RecordManager::Fetch(RecordID recordID) {
-    // 1. Проверка валидности
+std::vector<Value> RecordManager::fetch(RecordID recordID) {
     if (!isValid(recordID)) {
-        throw std::runtime_error("Invalid RecordID");
+        throw std::runtime_error("RecordManager::fetch: Invalid RecordID");
     }
     
-    // 2. Читаем страницу
     Page page = pm_.readPage(recordID.pageID);
-    
-    // 3. Читаем слот
-    Slot slot = GetSlot(page, recordID.slotID);
+    Slot slot = getSlot(page, recordID.slotID);
     
     if (slot.size == 0) {
-        throw std::runtime_error("Record has been deleted");
+        throw std::runtime_error("RecordManager::fetch: Record has been deleted");
     }
     
-    // 4. Извлекаем данные
     const char* dataPtr = page.data() + slot.offset;
-    
-    // 5. Десериализуем
     return Serializer::deserialize(dataPtr, static_cast<size_t>(slot.size), schema_);
 }
 
-void RecordManager::Update(RecordID recordID, const std::vector<Value>& record) {
+RecordID RecordManager::update(RecordID recordID, const std::vector<Value>& record) {
     if (!isValid(recordID)) {
-        throw std::runtime_error("Invalid RecordID");
+        throw std::runtime_error("RecordManager::update: Invalid RecordID");
     }
     
     std::vector<char> newData = Serializer::serialize(record, schema_);
     size_t newSize = newData.size();
     
     Page page = pm_.readPage(recordID.pageID);
-    Slot oldSlot = GetSlot(page, recordID.slotID);
+    Slot oldSlot = getSlot(page, recordID.slotID);
     
     if (oldSlot.size == 0) {
-        throw std::runtime_error("Cannot update deleted record");
+        throw std::runtime_error("RecordManager::update: Cannot update deleted record");
     }
     
     if (static_cast<size_t>(oldSlot.size) == newSize) {
         std::memcpy(page.data() + oldSlot.offset, newData.data(), newSize);
         pm_.writePage(recordID.pageID, page);
-        return;
+        return recordID;
     }
     
-    Remove(recordID);
-    RecordID newRid = Insert(record);
-    
-    if (newRid.pageID != recordID.pageID || newRid.slotID != recordID.slotID) {
-        // Если запись переместилась, нужно обновить индексы
-        // TODO: Уведомить IndexManager о перемещении
-    }
+    remove(recordID);
+    return insert(record);
 }
 
-void RecordManager::Remove(RecordID recordID) {
+void RecordManager::remove(RecordID recordID) {
     if (!isValid(recordID)) {
-        throw std::runtime_error("Invalid RecordID");
+        throw std::runtime_error("RecordManager::remove: Invalid RecordID");
     }
     
-    // 1. Читаем страницу
     Page page = pm_.readPage(recordID.pageID);
-    
-    // 2. Помечаем слот как удалённый (size = 0)
-    RemoveSlot(page, recordID.slotID);
-    
-    // 3. Сохраняем страницу
+    removeSlot(page, recordID.slotID);
     pm_.writePage(recordID.pageID, page);
     
-    // 4. Если страница пуста, освобождаем её
-    if (IsPageEmpty(page)) {
+    if (isPageEmpty(page)) {
         pm_.freePage(recordID.pageID);
     }
 }
 
-void RecordManager::Scan(std::function<void(RecordID, const std::vector<Value>&)> callback) {
+void RecordManager::scan(std::function<void(RecordID, const std::vector<Value>&)> callback) {
     int32_t pageCount = pm_.pageCount();
     
-    for (PageID_t pageID = 1; pageID < pageCount; pageID++) {  // Page 0 — заголовочная
+    for (PageID_t pageID = 1; pageID < pageCount; ++pageID) {
         try {
             Page page = pm_.readPage(pageID);
-            int16_t recordCount = GetSlotCount(page);
+            int16_t recordCount = getSlotCount(page);
             
-            for (int16_t slotId = 0; slotId < recordCount; slotId++) {
-                Slot slot = GetSlot(page, slotId);
+            for (int16_t slotID = 0; slotID < recordCount; ++slotID) {
+                Slot slot = getSlot(page, slotID);
                 if (slot.size > 0) {
-                    RecordID recordID{pageID, slotId};
+                    RecordID recordID{pageID, slotID};
                     try {
-                        std::vector<Value> values = Fetch(recordID);
+                        std::vector<Value> values = fetch(recordID);
                         callback(recordID, values);
-                    } catch (const std::exception& e) {
-                        // Логируем ошибку, но продолжаем сканирование
-                        continue;
+                    } catch (const std::exception&) {
+                        // Пропускаем повреждённые записи
                     }
                 }
             }
-        } catch (const std::exception& e) {
-            continue;
-        }
-    }
-}
-
-
-int16_t RecordManager::GetSlotCount(const Page& page) const {
-    int16_t count;
-    std::memcpy(&count, page.data() + PAGE_RECORD_COUNT_OFFSET, sizeof(count));
-    return count;
-}
-
-int16_t RecordManager::GetFreeOffset(const Page& page) const {
-    int16_t freeOffset;
-    std::memcpy(&freeOffset, page.data() + PAGE_FREE_OFFSET_OFFSET, sizeof(freeOffset));
-    return freeOffset;
-}
-
-void RecordManager::SetFreeOffset(Page& page, int16_t freeOffset) {
-    std::memcpy(page.data() + PAGE_FREE_OFFSET_OFFSET, &freeOffset, sizeof(freeOffset));
-}
-
-void RecordManager::SetRecordCount(Page& page, int16_t recordCount) {
-    std::memcpy(page.data() + PAGE_RECORD_COUNT_OFFSET, &recordCount, sizeof(recordCount));
-}
-
-RecordManager::Slot RecordManager::GetSlot(const Page& page, int16_t slotIndex) const {
-    Slot slot;
-    const char* slotPtr = page.data() + PAGE_HEADER_SIZE + slotIndex * SLOT_SIZE;
-    std::memcpy(&slot.offset, slotPtr, 2);
-    std::memcpy(&slot.size, slotPtr + 2, 2);
-    std::memcpy(&slot.reserved, slotPtr + 4, 4);
-    return slot;
-}
-
-void RecordManager::SetSlot(Page& page, int16_t slotIndex, const Slot& slot) {
-    char* slotPtr = page.data() + PAGE_HEADER_SIZE + slotIndex * SLOT_SIZE;
-    std::memcpy(slotPtr, &slot.offset, 2);
-    std::memcpy(slotPtr + 2, &slot.size, 2);
-    std::memcpy(slotPtr + 4, &slot.reserved, 4);
-}
-
-void RecordManager::RemoveSlot(Page& page, int16_t slotIndex) {
-    Slot slot = GetSlot(page, slotIndex);
-    slot.size = 0;
-    SetSlot(page, slotIndex, slot);
-}
-
-int16_t RecordManager::FindFreeSlotIndex(const Page& page) const {
-    int16_t recordCount = GetSlotCount(page);
-    for (int16_t i = 0; i < recordCount; i++) {
-        Slot slot = GetSlot(page, i);
-        if (slot.size == 0) {
-            return i;  // Нашли удалённый слот
-        }
-    }
-    return INVALID_SLOT;  // Нет свободных слотов
-}
-
-PageID_t RecordManager::FindPageWithSpace(size_t neededBytes) {
-    // Размер данных + слот
-    size_t totalNeeded = neededBytes + SLOT_SIZE;
-    
-    int32_t pageCount = pm_.pageCount();
-    
-    // Ищем существующую страницу с местом
-    for (PageID_t pageID = 1; pageID < pageCount; pageID++) {
-        try {
-            Page page = pm_.readPage(pageID);
-            int16_t freeOffset = GetFreeOffset(page);
-            int16_t recordCount = GetSlotCount(page);
-            int16_t slotsEnd = PAGE_HEADER_SIZE + (recordCount + 1) * SLOT_SIZE;
-            size_t availableSpace = static_cast<size_t>(freeOffset - slotsEnd);
-            
-            if (availableSpace >= totalNeeded) {
-                return pageID;
-            }
-        } catch (...) {
+        } catch (const std::exception&) {
             // Пропускаем повреждённые страницы
-            continue;
         }
     }
-    
-    // Нет подходящей страницы — создаём новую
-    return pm_.allocatePage();
-}
-
-void RecordManager::CompactPage(Page& page) {
-    int16_t recordCount = GetSlotCount(page);
-    
-    if (recordCount == 0) {
-        return;
-    }
-    
-    // 1. Собираем живые записи
-    std::vector<Slot> liveSlots;
-    std::vector<size_t> liveIndices;
-    size_t totalDataSize = 0;
-    
-    for (int16_t i = 0; i < recordCount; i++) {
-        Slot slot = GetSlot(page, i);
-        if (slot.size > 0) {
-            liveSlots.push_back(slot);
-            liveIndices.push_back(i);
-            totalDataSize += slot.size;
-        }
-    }
-    
-    if (liveSlots.empty()) {
-        // Нет живых записей — очищаем страницу
-        ClearPage(page);
-        return;
-    }
-    
-    // 2. Проверяем, нужна ли компактификация
-    int16_t freeOffset = GetFreeOffset(page);
-    int16_t usedSpace = PAGE_SIZE - freeOffset;
-    
-    // Если фрагментация небольшая, не компактифицируем
-    if (static_cast<size_t>(usedSpace - totalDataSize) < PAGE_SIZE / 10) {
-        return;  // Маленькая фрагментация, не трогаем
-    }
-    
-    // 3. Создаём временный буфер для данных
-    //    ВНИМАНИЕ: это массив char, а не vector!
-    char tempBuffer[PAGE_SIZE];
-    
-    // 4. Копируем заголовок
-    std::memcpy(tempBuffer, page.data(), PAGE_HEADER_SIZE);
-    
-    // 5. Копируем живые записи в конец временного буфера
-    int16_t currentOffset = PAGE_SIZE;
-    for (size_t i = liveSlots.size(); i > 0; i--) {
-        const Slot& slot = liveSlots[i - 1];
-        currentOffset -= slot.size;
-        
-        // Копируем данные
-        std::memcpy(tempBuffer + currentOffset, 
-                    page.data() + slot.offset, 
-                    slot.size);
-        
-        // Обновляем слот
-        liveSlots[i - 1].offset = currentOffset;
-    }
-    
-    // 6. Записываем новые слоты
-    for (size_t i = 0; i < liveSlots.size(); i++) {
-        char* slotPtr = tempBuffer + PAGE_HEADER_SIZE + i * SLOT_SIZE;
-        std::memcpy(slotPtr, &liveSlots[i].offset, 2);
-        std::memcpy(slotPtr + 2, &liveSlots[i].size, 2);
-        std::memcpy(slotPtr + 4, &liveSlots[i].reserved, 4);
-    }
-    
-    // 7. Обновляем заголовок
-    int16_t newRecordCount = static_cast<int16_t>(liveSlots.size());
-    std::memcpy(tempBuffer + PAGE_RECORD_COUNT_OFFSET, &newRecordCount, 2);
-    std::memcpy(tempBuffer + PAGE_FREE_OFFSET_OFFSET, &currentOffset, 2);
-    
-    // 8. Копируем обратно на страницу
-    std::memcpy(page.data(), tempBuffer, PAGE_SIZE);
-}
-bool RecordManager::ShouldCompact(const Page& page) const {
-    int16_t recordCount = GetSlotCount(page);
-    if (recordCount == 0) return false;
-    
-    int16_t freeOffset = GetFreeOffset(page);
-    int16_t usedSpace = PAGE_SIZE - freeOffset;
-    
-    // Считаем активные данные
-    int16_t activeData = 0;
-    for (int16_t i = 0; i < recordCount; i++) {
-        Slot slot = GetSlot(page, i);
-        if (slot.size > 0) {
-            activeData += slot.size;
-        }
-    }
-    
-    // Если удалённые данные занимают больше 30% использованного пространства
-    int16_t wastedSpace = usedSpace - activeData;
-    return (wastedSpace > usedSpace / 3);
-}
-
-bool RecordManager::IsPageEmpty(const Page& page) const {
-    int16_t recordCount = GetSlotCount(page);
-    
-    for (int16_t i = 0; i < recordCount; i++) {
-        Slot slot = GetSlot(page, i);
-        if (slot.size > 0) {
-            return false;  // Есть живая запись
-        }
-    }
-    
-    return true;
-}
-
-void RecordManager::ClearPage(Page& page) {
-    // Очищаем заголовок
-    int32_t nextPage = -1;
-    int16_t recordCount = 0;
-    int16_t freeOffset = PAGE_SIZE;
-    int32_t flags = 0;
-    
-    std::memcpy(page.data() + PAGE_NEXT_PAGE_OFFSET, &nextPage, 4);
-    std::memcpy(page.data() + PAGE_RECORD_COUNT_OFFSET, &recordCount, 2);
-    std::memcpy(page.data() + PAGE_FREE_OFFSET_OFFSET, &freeOffset, 2);
-    std::memcpy(page.data() + PAGE_FLAGS_OFFSET, &flags, 4);
-    
-    // Остальное заполняем нулями
-    std::memset(page.data() + PAGE_HEADER_SIZE, 0, PAGE_SIZE - PAGE_HEADER_SIZE);
 }
 
 bool RecordManager::isValid(RecordID recordID) const {
@@ -399,31 +145,257 @@ bool RecordManager::isValid(RecordID recordID) const {
     
     try {
         Page page = pm_.readPage(recordID.pageID);
-        int16_t recordCount = GetSlotCount(page);
+        int16_t recordCount = getSlotCount(page);
         
         if (recordID.slotID >= recordCount) {
             return false;
         }
         
-        Slot slot = GetSlot(page, recordID.slotID);
+        Slot slot = getSlot(page, recordID.slotID);
         return slot.size > 0;
     } catch (...) {
         return false;
     }
 }
 
-size_t RecordManager::GetRecordCount() const {
+size_t RecordManager::getTotalRecordCount() const {
     size_t total = 0;
     int32_t pageCount = pm_.pageCount();
     
-    for (PageID_t pageID = 1; pageID < pageCount; pageID++) {
+    for (PageID_t pageID = 1; pageID < pageCount; ++pageID) {
         try {
             Page page = pm_.readPage(pageID);
-            total += static_cast<size_t>(GetSlotCount(page));
+            total += static_cast<size_t>(getSlotCount(page));
         } catch (...) {
             continue;
         }
     }
     
     return total;
+}
+
+int16_t RecordManager::getSlotCount(const Page& page) const {
+    int16_t count;
+    std::memcpy(&count, page.data() + PAGE_RECORD_COUNT_OFFSET, sizeof(count));
+    return count;
+}
+
+int16_t RecordManager::getFreeOffset(const Page& page) const {
+    int16_t freeOffset;
+    std::memcpy(&freeOffset, page.data() + PAGE_FREE_OFFSET_OFFSET, sizeof(freeOffset));
+    return freeOffset;
+}
+
+void RecordManager::setFreeOffset(Page& page, int16_t freeOffset) {
+    std::memcpy(page.data() + PAGE_FREE_OFFSET_OFFSET, &freeOffset, sizeof(freeOffset));
+}
+
+void RecordManager::setRecordCount(Page& page, int16_t recordCount) {
+    std::memcpy(page.data() + PAGE_RECORD_COUNT_OFFSET, &recordCount, sizeof(recordCount));
+}
+
+RecordManager::Slot RecordManager::getSlot(const Page& page, int16_t slotIndex) const {
+    Slot slot;
+    const char* slotPtr = page.data() + PAGE_HEADER_SIZE + slotIndex * SLOT_SIZE;
+    std::memcpy(&slot.offset, slotPtr, 2);
+    std::memcpy(&slot.size, slotPtr + 2, 2);
+    std::memcpy(&slot.reserved, slotPtr + 4, 4);
+    return slot;
+}
+
+void RecordManager::setSlot(Page& page, int16_t slotIndex, const Slot& slot) {
+    char* slotPtr = page.data() + PAGE_HEADER_SIZE + slotIndex * SLOT_SIZE;
+    std::memcpy(slotPtr, &slot.offset, 2);
+    std::memcpy(slotPtr + 2, &slot.size, 2);
+    std::memcpy(slotPtr + 4, &slot.reserved, 4);
+}
+
+void RecordManager::removeSlot(Page& page, int16_t slotIndex) {
+    Slot slot = getSlot(page, slotIndex);
+    slot.size = 0;
+    setSlot(page, slotIndex, slot);
+}
+
+
+int16_t RecordManager::findFreeSlotIndex(const Page& page) const {
+    int16_t recordCount = getSlotCount(page);
+    
+    for (int16_t i = 0; i < recordCount; ++i) {
+        Slot slot = getSlot(page, i);
+        if (slot.size == 0) {
+            return i;
+        }
+    }
+    
+    return INVALID_SLOT;
+}
+
+PageID_t RecordManager::findPageWithSpace(size_t neededBytes) {
+    size_t totalNeeded = neededBytes + SLOT_SIZE;
+    int32_t pageCount = pm_.pageCount();
+    
+    for (PageID_t pageID = 1; pageID < pageCount; ++pageID) {
+        try {
+            Page page = pm_.readPage(pageID);
+            int16_t freeOffset = getFreeOffset(page);
+            int16_t recordCount = getSlotCount(page);
+            
+            int16_t slotsEnd = PAGE_HEADER_SIZE + (recordCount + 1) * SLOT_SIZE;
+            size_t availableSpace = static_cast<size_t>(freeOffset - slotsEnd);
+            
+            if (availableSpace >= totalNeeded) {
+                return pageID;
+            }
+        } catch (...) {
+            continue;
+        }
+    }
+    
+    return pm_.allocatePage();
+}
+
+int16_t RecordManager::findInsertPosition(const Page& page, size_t recordSize) const {
+    int16_t freeOffset = getFreeOffset(page);
+    int16_t newFreeOffset = freeOffset - static_cast<int16_t>(recordSize);
+    
+    int16_t recordCount = getSlotCount(page);
+    int16_t slotsEnd = PAGE_HEADER_SIZE + (recordCount + 1) * SLOT_SIZE;
+    
+    if (newFreeOffset < slotsEnd) {
+        throw std::runtime_error("RecordManager::findInsertPosition: Not enough space");
+    }
+    
+    return newFreeOffset;
+}
+
+void RecordManager::appendRecord(Page& page, const std::vector<char>& data, RecordID& recordID) {
+    size_t recordSize = data.size();
+    
+    int16_t slotIndex = findFreeSlotIndex(page);
+    if (slotIndex == INVALID_SLOT) {
+        slotIndex = getSlotCount(page);
+        setRecordCount(page, getSlotCount(page) + 1);
+    }
+    
+    int16_t insertPosition = findInsertPosition(page, recordSize);
+    std::memcpy(page.data() + insertPosition, data.data(), recordSize);
+    
+    Slot slot{insertPosition, static_cast<int16_t>(recordSize), 0};
+    setSlot(page, slotIndex, slot);
+    setFreeOffset(page, insertPosition);
+    
+    recordID.slotID = slotIndex;
+}
+
+void RecordManager::compactPage(Page& page) {
+    int16_t recordCount = getSlotCount(page);
+    
+    if (recordCount == 0) {
+        clearPage(page);
+        return;
+    }
+    
+    struct LiveRecord {
+        int16_t oldOffset;
+        int16_t size;
+        int16_t slotIndex;
+    };
+    
+    std::vector<LiveRecord> liveRecords;
+    size_t totalDataSize = 0;
+    
+    for (int16_t i = 0; i < recordCount; ++i) {
+        Slot slot = getSlot(page, i);
+        if (slot.size > 0) {
+            liveRecords.push_back({slot.offset, slot.size, i});
+            totalDataSize += slot.size;
+        }
+    }
+    
+    if (liveRecords.empty()) {
+        clearPage(page);
+        return;
+    }
+    
+    int16_t freeOffset = getFreeOffset(page);
+    int16_t usedSpace = PAGE_SIZE - freeOffset;
+    int16_t wasteSpace = usedSpace - static_cast<int16_t>(totalDataSize);
+    
+    if (wasteSpace < PAGE_SIZE / 20) {
+        return;
+    }
+    
+    Page tempPage{};
+    std::memcpy(tempPage.data(), page.data(), PAGE_HEADER_SIZE);
+    
+    int16_t currentOffset = PAGE_SIZE;
+    for (size_t i = liveRecords.size(); i > 0; --i) {
+        currentOffset -= liveRecords[i - 1].size;
+        
+        std::memcpy(tempPage.data() + currentOffset,
+                    page.data() + liveRecords[i - 1].oldOffset,
+                    liveRecords[i - 1].size);
+        
+        liveRecords[i - 1].oldOffset = currentOffset;
+    }
+    
+    for (const auto& rec : liveRecords) {
+        char* slotPtr = tempPage.data() + PAGE_HEADER_SIZE + rec.slotIndex * SLOT_SIZE;
+        std::memcpy(slotPtr, &rec.oldOffset, 2);
+        std::memcpy(slotPtr + 2, &rec.size, 2);
+        int32_t reserved = 0;
+        std::memcpy(slotPtr + 4, &reserved, 4);
+    }
+    
+    int16_t newRecordCount = static_cast<int16_t>(liveRecords.size());
+    std::memcpy(tempPage.data() + PAGE_RECORD_COUNT_OFFSET, &newRecordCount, 2);
+    std::memcpy(tempPage.data() + PAGE_FREE_OFFSET_OFFSET, &currentOffset, 2);
+    
+    std::memcpy(page.data(), tempPage.data(), PAGE_SIZE);
+}
+
+bool RecordManager::shouldCompact(const Page& page) const {
+    int16_t recordCount = getSlotCount(page);
+    if (recordCount == 0) return false;
+    
+    int16_t freeOffset = getFreeOffset(page);
+    int16_t usedSpace = PAGE_SIZE - freeOffset;
+    
+    int16_t activeData = 0;
+    for (int16_t i = 0; i < recordCount; ++i) {
+        Slot slot = getSlot(page, i);
+        if (slot.size > 0) {
+            activeData += slot.size;
+        }
+    }
+    
+    int16_t wastedSpace = usedSpace - activeData;
+    return wastedSpace > usedSpace / 3;
+}
+
+bool RecordManager::isPageEmpty(const Page& page) const {
+    int16_t recordCount = getSlotCount(page);
+    
+    for (int16_t i = 0; i < recordCount; ++i) {
+        Slot slot = getSlot(page, i);
+        if (slot.size > 0) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+void RecordManager::clearPage(Page& page) {
+    PageID_t nextPage = -1;
+    int16_t recordCount = 0;
+    int16_t freeOffset = PAGE_SIZE;
+    int32_t flags = 0;
+    
+    std::memcpy(page.data() + PAGE_NEXT_PAGE_OFFSET, &nextPage, sizeof(nextPage));
+    std::memcpy(page.data() + PAGE_RECORD_COUNT_OFFSET, &recordCount, 2);
+    std::memcpy(page.data() + PAGE_FREE_OFFSET_OFFSET, &freeOffset, 2);
+    std::memcpy(page.data() + PAGE_FLAGS_OFFSET, &flags, sizeof(flags));
+    
+    std::memset(page.data() + PAGE_HEADER_SIZE, 0, PAGE_SIZE - PAGE_HEADER_SIZE);
 }

@@ -14,20 +14,10 @@ class PageManager {
 public:
   explicit PageManager(const std::string &filePath);
   ~PageManager();
-
-  // Прочитать страницу с диска в память
   Page readPage(PageID_t pageID);
-
-  // Записать страницу из памяти на диск
   void writePage(PageID_t pageID, const Page &page);
-
-  // Выделить новую страницу (расширить файл)
   PageID_t allocatePage();
-
-  // Пометить страницу как свободную
   void freePage(PageID_t pageID);
-
-  // Сколько страниц в файле
   int32_t pageCount() const;
 
 private:
@@ -36,9 +26,9 @@ private:
   int32_t pageCount_;
   int32_t freeListHead_;
 
-  void initFile();   // создать файл если не существует
-  void loadHeader(); // прочитать pageCount из заголовка
-  void saveHeader(); // сохранить PageCount в заголовок
+  void initFile();
+  void loadHeader();
+  void saveHeader();
 };
 
 #endif // DBMS_PAIN_PAGEMANAGER_H

@@ -19,7 +19,7 @@ std::vector<char> Serializer::serialize(const std::vector<Value> &record,
         "Serializer::serialize: NULL value in NOT NULL column " + schema.columns[i].name);
     }
     
-    // Проверка соответствия типов (не NULL значения)
+    // Проверка соответствия типов (не NULL)
     if (!val::isNull(record[i])) {
       if (schema.columns[i].type == ColType::INT && !val::isInt(record[i])) {
         throw std::runtime_error(
