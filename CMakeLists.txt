@@ -3,6 +3,7 @@ project(DBMS_pain LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #  Boost (header-only, needed by B*+-tree) 
 find_package(Boost REQUIRED)
