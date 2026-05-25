@@ -21,6 +21,9 @@ add_executable(DBMS_pain
         src/catalog/SystemCatalog.h
         src/utils/Value.h
         src/utils/Error.h
+        src/utils/LogRecord.h,
+        src/utils/AccessLogger.h,
+        src/utils/AccessLogger.cpp
         src/storage/RecordManager.cpp
         src/storage/RecordManager.h
         src/engine/Schema.cpp
