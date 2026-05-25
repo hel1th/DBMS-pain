@@ -22,17 +22,87 @@ UndoLogManager::~UndoLogManager() {
     if (this->logFile_.is_open()) {
         this->logFile_.flush(); // все чо в буфере осталось - пишем
         this->logFile_.close(); 
-    } else {
-        throw UndoLogError("File is not opened");
     }
 }
 
-void UndoLogManager::writeBinaryString(std::ostream& out, const std::string& str) {
+uint64_t UndoLogManager::getCurrentTimeMs() {
+    auto now = std::chrono::system_clock::now();
+    auto duration = now.time_since_epoch();
+    auto millisecs = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+    return static_cast<uint64_t>(millisecs.count()); 
+}
+
+std::vector<UndoLogRecord> UndoLogManager::getRecordsToRevert(const std::string& tableName, uint64_t timeMs) {
     std::lock_guard<std::mutex> lock(this->mutex_);
+    std::vector<UndoLogRecord> recordsToRevert;
+
+    std::ifstream file(this->filePath_, std::ios::binary);
+    if (!file.is_open()) {
+        return recordsToRevert;
+    }
+    file.seekg(0, std::ios::end);
+    std::streampos currentPos = file.tellg();
+    while (currentPos > 0) {
+        file.seekg(currentPos - static_cast<std::streamoff>(sizeof(uint32_t)));
+        uint32_t recordSize = 0;
+        file.read(reinterpret_cast<char*>(&recordSize), sizeof(recordSize));
+        std::streampos recordStartPos = currentPos - static_cast<std::streamoff>(recordSize + sizeof(uint32_t));
+        file.seekg(recordStartPos);
+        UndoLogRecord record = readRecord(file);
+        if (record.timeMS < timeMs) {
+            break;
+        }
+        if (record.tableName == tableName) {
+            recordsToRevert.push_back(record);
+        }
+        currentPos = recordStartPos;
+    }
+    return recordsToRevert;
+}
+
+void UndoLogManager::truncateLog(uint64_t timeMs) {
+    std::lock_guard<std::mutex> lock(this->mutex_);
+
+    std::ifstream file(this->filePath_, std::ios::binary);
+    if (!file.is_open()) {
+        throw UndoLogError("Cannot open log file!");
+    }
+    file.seekg(0, std::ios::end);
+    std::streampos currentPos = file.tellg();
+    std::streampos truncatePos = currentPos;
+
+    while (currentPos > 0) {
+        file.seekg(currentPos - static_cast<std::streamoff>(sizeof(uint32_t)));
+        uint32_t recordSize = 0;
+        file.read(reinterpret_cast<char*>(&recordSize), sizeof(recordSize));
+        std::streampos recordStartPos = currentPos - static_cast<std::streamoff>(recordSize + sizeof(uint32_t));
+
+        file.seekg(recordStartPos);
+        uint64_t recordTime = 0;
+        file.read(reinterpret_cast<char*>(&recordTime), sizeof(recordTime));
+        if (recordTime < timeMs) {
+            truncatePos = currentPos;
+            break;
+        }
+        truncatePos = recordStartPos;
+        currentPos = recordStartPos;
+    }
+    file.close();
+
+    if (this->logFile_.is_open()) {
+        this->logFile_.close();
+    }
+
+    std::filesystem::resize_file(this->filePath_, truncatePos);
+
+    this->logFile_.open(this->filePath_, std::ios::in | std::ios::out | std::ios::binary);
+}
+
+void UndoLogManager::writeBinaryString(std::ostream& out, const std::string& str) {
     out.clear();
 
     uint32_t strLen = str.size();
-    out.write(reinterpret_cast<const char*>(strLen), sizeof(strLen));
+    out.write(reinterpret_cast<const char*>(&strLen), sizeof(strLen));
 
     if (strLen > 0) {
         out.write(str.data(), strLen);
@@ -41,11 +111,10 @@ void UndoLogManager::writeBinaryString(std::ostream& out, const std::string& str
 }
 
 void UndoLogManager::writeBinary(std::ostream& out, const std::vector<uint8_t>& bytes) {
-    std::lock_guard<std::mutex> lock(this->mutex_);
     out.clear();
 
     uint32_t vecLen = bytes.size();
-    out.write(reinterpret_cast<const char*>(vecLen), sizeof(vecLen));
+    out.write(reinterpret_cast<const char*>(&vecLen), sizeof(vecLen));
 
     if (vecLen > 0) {
         out.write(reinterpret_cast<const char*>(bytes.data()), vecLen);
@@ -54,7 +123,6 @@ void UndoLogManager::writeBinary(std::ostream& out, const std::vector<uint8_t>& 
 }
 
 void UndoLogManager::writeRecord(const UndoLogRecord& record) {
-    std::lock_guard<std::mutex> lock(this->mutex_);
     this->logFile_.clear();
 
     this->logFile_.seekp(0, std::ios::end);
@@ -102,12 +170,12 @@ UndoLogRecord UndoLogManager::readRecord(std::ifstream& in) {
     UndoLogRecord record;
 
     in.read(reinterpret_cast<char*>(&record.timeMS), sizeof(record.timeMS));
+    record.tableName = readBinaryString(in);
 
     uint8_t action;
     in.read(reinterpret_cast<char*>(&action), sizeof(action));
     record.actionType = static_cast<RevertActionType>(action);
 
-    record.tableName = readBinaryString(in);
     record.keys = readBinary(in);
     record.oldRowData = readBinary(in);
 
