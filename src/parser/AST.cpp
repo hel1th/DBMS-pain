@@ -101,7 +101,7 @@ std::string InsertQuery::toString() const {
         }
         res += ")";
     }
-    res += " VALUES ";
+    res += " VALUE ";
     for (size_t i = 0; i < values.size(); ++i) {
         if (i > 0)
             res += ", ";
