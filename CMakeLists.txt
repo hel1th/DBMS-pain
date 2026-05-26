@@ -48,12 +48,16 @@ set_source_files_properties(
 
 # ==================== Main Executable ====================
 add_executable(DBMS_pain
+    src/tests/TestUndoLog.cpp
+    src/tests/TestParser.cpp
+
     src/main.cpp
     src/parser/AST.cpp
     src/parser/SqlParser.cpp
     src/storage/Serializer.cpp
     src/storage/RecordManager.cpp
     src/storage/PageManager.cpp
+    src/storage/UndoLogManager.cpp
     src/catalog/SystemCatalog.cpp
     src/engine/Schema.cpp
     src/engine/Table.cpp
