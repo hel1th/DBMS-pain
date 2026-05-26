@@ -1,4 +1,5 @@
 %{
+#undef YY_DECL
 #define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
 
 #include "parser/SqlScanner.h"

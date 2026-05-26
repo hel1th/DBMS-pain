@@ -3,20 +3,16 @@
 #include <regex>
 
 Executor::Executor() : catalog_("./data") {
-    for (const auto& name : catalog_.listDatabases()) {
-        databases_[name] = std::make_unique<Database>(
-            "./data/" + name, name
-        );
+    for (const auto& name: catalog_.listDatabases()) {
+        databases_[name] = std::make_unique<Database>("./data/" + name, name);
     }
 }
 
 QueryResult Executor::execCreateDatabase(const CreateDatabaseQuery& q) {
     catalog_.addDatabase(q.dbName);
-    databases_[q.dbName] = std::make_unique<Database>(
-        "./data/" + q.dbName, q.dbName
-    );
+    databases_[q.dbName] = std::make_unique<Database>("./data/" + q.dbName, q.dbName);
 
-    return {true, "",{}, 0};
+    return {true, "", {}, 0};
 }
 
 QueryResult Executor::execDropDatabase(const DropDatabaseQuery& q) {
@@ -29,7 +25,8 @@ QueryResult Executor::execDropDatabase(const DropDatabaseQuery& q) {
 
 QueryResult Executor::execute(ASTNode* node) {
     if (!node)
-        return {false, "Empty query"};
+        return {false, "Empty query", {}, 0};
+
 
     switch (node->kind) {
         case NodeKind::INSERT_QUERY:
@@ -51,7 +48,7 @@ QueryResult Executor::execute(ASTNode* node) {
         case NodeKind::USE_QUERY:
             return execUse(*dynamic_cast<UseQuery*>(node));
         default:
-            return {false, "Empty query type"};
+            return {false, "Empty query", {}, 0};
     }
 }
 
@@ -76,12 +73,12 @@ QueryResult Executor::execCreateTable(const CreateTableQuery& q) {
     Database& db = currentDatabase();
     Schema schema;
     schema.tableName = q.tableName;
-    for (const auto& col : q.columns) {
+    for (const auto& col: q.columns) {
         ColumnDef def;
-        def.name    = col.name;
-        def.type    = col.type;
-        def.notNull  = col.notNull;
-        def.indexed  = col.indexed;
+        def.name = col.name;
+        def.type = col.type;
+        def.notNull = col.notNull;
+        def.indexed = col.indexed;
         def.default_value = col.defaultValue;
         schema.columns.push_back(def);
     }
@@ -95,13 +92,13 @@ QueryResult Executor::execDropTable(const DropTableQuery& q) {
 }
 
 QueryResult Executor::execInsert(const InsertQuery& q) {
-    Database& db  = currentDatabase();
-    Table&    tbl = db.getTable(q.tableName);
+    Database& db = currentDatabase();
+    Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
     int affected = 0;
 
-    for (const auto& rowAst : q.values) {
+    for (const auto& rowAst: q.values) {
         // собираем запись размером schema.columns.size()
         std::vector<Value> record(schema.columns.size(), std::nullopt);
 
@@ -126,8 +123,7 @@ QueryResult Executor::execInsert(const InsertQuery& q) {
             if (col.default_value.has_value()) {
                 record[i] = col.default_value.value();
             } else if (col.notNull) {
-                throw SemanticError("Column '" + col.name +
-                                    "' cannot be NULL");
+                throw SemanticError("Column '" + col.name + "' cannot be NULL");
             }
             // иначе остаётся NULL — это ок
         }
@@ -140,8 +136,8 @@ QueryResult Executor::execInsert(const InsertQuery& q) {
 }
 
 QueryResult Executor::execDelete(const DeleteQuery& q) {
-    Database& db  = currentDatabase();
-    Table&    tbl = db.getTable(q.tableName);
+    Database& db = currentDatabase();
+    Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
     int affected = 0;
@@ -152,7 +148,7 @@ QueryResult Executor::execDelete(const DeleteQuery& q) {
             toDelete.push_back(recordID);
     });
 
-    for (auto recordID : toDelete) {
+    for (auto recordID: toDelete) {
         tbl.remove(recordID);
         affected++;
     }
@@ -161,8 +157,8 @@ QueryResult Executor::execDelete(const DeleteQuery& q) {
 }
 
 QueryResult Executor::execUpdate(const UpdateQuery& q) {
-    Database& db  = currentDatabase();
-    Table&    tbl = db.getTable(q.tableName);
+    Database& db = currentDatabase();
+    Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
     int affected = 0;
@@ -173,7 +169,7 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
             return;
 
         std::vector<Value> newRecord = record;
-        for (const auto& [colName, expr] : q.assignments) {
+        for (const auto& [colName, expr]: q.assignments) {
             int idx = schema.columnIndex(colName);
             if (idx == -1)
                 throw SemanticError("Unknown column: " + colName);
@@ -182,7 +178,7 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
         toUpdate.emplace_back(recordID, std::move(newRecord));
     });
 
-    for (auto& [recordID, newRecord] : toUpdate) {
+    for (auto& [recordID, newRecord]: toUpdate) {
         tbl.update(recordID, newRecord);
         affected++;
     }
@@ -191,8 +187,8 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
 }
 
 QueryResult Executor::execSelect(const SelectQuery& q) {
-    Database& db  = currentDatabase();
-    Table&    tbl = db.getTable(q.tableName);
+    Database& db = currentDatabase();
+    Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
     // WHERE indexed_col == value
@@ -200,10 +196,10 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
         idxCol != -1 && q.where && q.where->kind == NodeKind::BINARY_OP) {
         auto* bin = dynamic_cast<const BinaryOp*>(q.where.get());
         if (bin->op == "==") {
-            bool leftIsCol = bin->left->kind  == NodeKind::COLUMN_REF;
+            bool leftIsCol = bin->left->kind == NodeKind::COLUMN_REF;
             bool rightIsCol = bin->right->kind == NodeKind::COLUMN_REF;
-            const ASTNode* colNode = leftIsCol  ? bin->left.get()  : bin->right.get();
-            const ASTNode* valNode = leftIsCol  ? bin->right.get() : bin->left.get();
+            const ASTNode* colNode = leftIsCol ? bin->left.get() : bin->right.get();
+            const ASTNode* valNode = leftIsCol ? bin->right.get() : bin->left.get();
 
             if (!rightIsCol || !leftIsCol) {
                 auto* ref = dynamic_cast<const ColumnRef*>(colNode);
@@ -211,7 +207,7 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
                     Value key = resolve(valNode, {}, schema);
                     try {
                         RecordID recordID = tbl.findByIndex(ref->name, key);
-                        auto record  = tbl.fetch(recordID);
+                        auto record = tbl.fetch(recordID);
                         std::vector<Row> rows;
                         if (q.aggregates.empty())
                             rows.push_back(project(record, schema, q));
@@ -228,8 +224,8 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
         // аккумуляторы для каждого агрегата
         struct Acc {
             double sum = 0;
-            int    count = 0;
-            bool   hasVal = false;
+            int count = 0;
+            bool hasVal = false;
         };
         std::vector<Acc> accs(q.aggregates.size());
 
@@ -267,8 +263,7 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
                 if (accs[i].count == 0)
                     row.emplace_back(label, std::nullopt);
                 else
-                    row.emplace_back(label,
-                        Value(static_cast<int>(accs[i].sum / accs[i].count)));
+                    row.emplace_back(label, Value(static_cast<int>(accs[i].sum / accs[i].count)));
             }
         }
         return {true, "", {row}, 0};
@@ -365,10 +360,11 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
         }
         case NodeKind::LIKE_OP: {
             auto* n = dynamic_cast<const LikeOp*>(where);
-            Value val     = resolve(n->expr.get(),    record, schema);
+            Value val = resolve(n->expr.get(), record, schema);
             Value pattern = resolve(n->pattern.get(), record, schema);
 
-            if (val::isNull(val) || val::isNull(pattern)) return false;
+            if (val::isNull(val) || val::isNull(pattern))
+                return false;
 
             if (!val::isString(val) || !val::isString(pattern))
                 throw SemanticError("LIKE requires string operands");
@@ -378,8 +374,7 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
                 std::regex re(val::getString(pattern));
                 return std::regex_match(val::getString(val), re);
             } catch (const std::regex_error&) {
-                throw SemanticError("Invalid regex pattern: "
-                                    + val::getString(pattern));
+                throw SemanticError("Invalid regex pattern: " + val::getString(pattern));
             }
         }
         default:
@@ -397,8 +392,8 @@ Row Executor::project(const std::vector<Value>& record, const Schema& schema,
             row.emplace_back(schema.columns[i].name, record[i]);
 
     } else {
-        for (const auto& [name, alias] : q.columns) {
-            const auto idx  = schema.columnIndex(name);
+        for (const auto& [name, alias]: q.columns) {
+            const auto idx = schema.columnIndex(name);
 
             if (idx == -1)
                 throw SemanticError("Unknown column: " + name);

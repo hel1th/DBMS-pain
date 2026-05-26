@@ -1,12 +1,12 @@
 #include "IndexManager.h"
+#include <cstddef>
 
-IndexManager::IndexManager(const std::string& filePath) : filePath_(filePath), intTree_(nullptr), strTree_(nullptr) {
+IndexManager::IndexManager(const std::string& filePath) :
+    filePath_(filePath), intTree_(nullptr), strTree_(nullptr) {
     load();
 }
 
-IndexManager::~IndexManager() {
-    save();
-}
+IndexManager::~IndexManager() { save(); }
 
 void IndexManager::load() {
     if (!std::filesystem::exists(filePath_)) {
@@ -24,7 +24,7 @@ void IndexManager::load() {
         intTree_ = std::make_unique<BspTree<int, RecordID>>();
         size_t count;
         file.read(reinterpret_cast<char*>(&count), sizeof(count));
-        for (int i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i) {
             int key;
             RecordID recordID;
             file.read(reinterpret_cast<char*>(&key), sizeof(key));
@@ -35,7 +35,7 @@ void IndexManager::load() {
         strTree_ = std::make_unique<BspTree<std::string, RecordID>>();
         size_t count;
         file.read(reinterpret_cast<char*>(&count), sizeof(count));
-        for (int i = 0; i < count; ++i) {
+        for (size_t i = 0; i < count; ++i) {
             size_t str_len;
             file.read(reinterpret_cast<char*>(&str_len), sizeof(str_len));
             std::string key(str_len, '\0');
@@ -60,7 +60,7 @@ void IndexManager::save() {
         size_t count = intTree_->size();
         file.write(reinterpret_cast<char*>(&count), sizeof(count));
 
-        for (const auto& pair : *intTree_) {
+        for (const auto& pair: *intTree_) {
             file.write(reinterpret_cast<const char*>(&pair.first), sizeof(pair.first));
             file.write(reinterpret_cast<const char*>(&pair.second), sizeof(pair.second));
         }
@@ -72,7 +72,7 @@ void IndexManager::save() {
         size_t count = strTree_->size();
         file.write(reinterpret_cast<char*>(&count), sizeof(count));
 
-        for (const auto& pair : *strTree_) {
+        for (const auto& pair: *strTree_) {
             size_t str_len = pair.first.size();
             file.write(reinterpret_cast<char*>(&str_len), sizeof(str_len));
             file.write(pair.first.data(), str_len);
@@ -105,7 +105,6 @@ void IndexManager::insertKey(const Value& key, RecordID rID) {
                 strTree_ = std::make_unique<BspTree<std::string, RecordID>>();
             }
             auto valStr = std::get<std::string>(key.value());
-            auto it = strTree_->find(valStr);
             if (strTree_->find(valStr) != strTree_->end()) {
                 throw IndexError("duplicate");
             }
@@ -150,4 +149,3 @@ RecordID IndexManager::findKey(const Value& key) {
     }
     throw IndexError("Index key is empty or type is undefined");
 }
-
