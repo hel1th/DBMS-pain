@@ -1,8 +1,8 @@
 %{
-#include "SqlScanner.h"
-#include "parser.hpp"
-
 #define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
+
+#include "SqlScanner.h"
+#include "parser.h"
 
 void yyerror(const char* msg);
 %}
@@ -10,7 +10,6 @@ void yyerror(const char* msg);
 %option c++
 %option noyywrap
 %option yylineno
-%option outfile="lexer.cpp"
 %option yyclass="SqlScanner"
 %option prefix="SqlScanner"
 
@@ -25,34 +24,34 @@ WHITESPACE      [ \t\r\n]+
 %%
 
  /* Ключевые слова (регистр неважен) */
-(?i:SELECT)     { return yy::parser::token::SELECT; }
-(?i:INSERT)     { return yy::parser::token::INSERT; }
-(?i:UPDATE)     { return yy::parser::token::UPDATE; }
-(?i:DELETE)     { return yy::parser::token::DELETE; }
-(?i:CREATE)     { return yy::parser::token::CREATE; }
-(?i:DROP)       { return yy::parser::token::DROP; }
-(?i:USE)        { return yy::parser::token::USE; }
-(?i:DATABASE)   { return yy::parser::token::DATABASE; }
-(?i:TABLE)      { return yy::parser::token::TABLE; }
-(?i:FROM)       { return yy::parser::token::FROM; }
-(?i:WHERE)      { return yy::parser::token::WHERE; }
-(?i:SET)        { return yy::parser::token::SET; }
-(?i:VALUES)     { return yy::parser::token::VALUES; }
-(?i:INTO)       { return yy::parser::token::INTO; }
-(?i:AS)         { return yy::parser::token::AS; }
-(?i:AND)        { return yy::parser::token::AND; }
-(?i:OR)         { return yy::parser::token::OR; }
-(?i:BETWEEN)    { return yy::parser::token::BETWEEN; }
-(?i:LIKE)       { return yy::parser::token::LIKE; }
-(?i:NOT)        { return yy::parser::token::NOT; }
-(?i:NULL)       { return yy::parser::token::NULL_; }
-(?i:INDEXED)    { return yy::parser::token::INDEXED; }
-(?i:SUM)        { return yy::parser::token::SUM; }
-(?i:COUNT)      { return yy::parser::token::COUNT; }
-(?i:AVG)        { return yy::parser::token::AVG; }
-(?i:DEFAULT)    { return yy::parser::token::DEFAULT; }
-"int"           { return yy::parser::token::INT_TYPE; }
-"string"        { return yy::parser::token::STRING_TYPE; }
+("SELECT"|"select")     { return yy::parser::token::SELECT; }
+("INSERT"|"insert")     { return yy::parser::token::INSERT; }
+("UPDATE"|"update")     { return yy::parser::token::UPDATE; }
+("DELETE"|"delete")     { return yy::parser::token::DELETE; }
+("CREATE"|"create")     { return yy::parser::token::CREATE; }
+("DROP"|"drop")         { return yy::parser::token::DROP; }
+("USE"|"use")           { return yy::parser::token::USE; }
+("DATABASE"|"database") { return yy::parser::token::DATABASE; }
+("TABLE"|"table")       { return yy::parser::token::TABLE; }
+("FROM"|"from")         { return yy::parser::token::FROM; }
+("WHERE"|"where")       { return yy::parser::token::WHERE; }
+("SET"|"set")           { return yy::parser::token::SET; }
+("VALUE"|"value")       { return yy::parser::token::VALUE; }
+("INTO"|"into")         { return yy::parser::token::INTO; }
+("AS"|"as")             { return yy::parser::token::AS; }
+("AND"|"and")           { return yy::parser::token::AND; }
+("OR"|"or")             { return yy::parser::token::OR; }
+("BETWEEN"|"between")   { return yy::parser::token::BETWEEN; }
+("LIKE"|"like")         { return yy::parser::token::LIKE; }
+("NOT"|"not")           { return yy::parser::token::NOT; }
+("NULL"|"null")         { return yy::parser::token::NULL_; }
+("INDEXED"|"indexed")   { return yy::parser::token::INDEXED; }
+("SUM"|"sum")           { return yy::parser::token::SUM; }
+("COUNT"|"count")       { return yy::parser::token::COUNT; }
+("AVG"|"avg")           { return yy::parser::token::AVG; }
+("DEFAULT"|"default")   { return yy::parser::token::DEFAULT; }
+("int"|"INT")           { return yy::parser::token::INT_TYPE; }
+("string"|"STRING")     { return yy::parser::token::STRING_TYPE; }
 
  /* Операторы */
 "=="            { return yy::parser::token::EQ; }

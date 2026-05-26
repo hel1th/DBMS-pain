@@ -16,6 +16,11 @@
     #include <string>
     #include "../utils/Value.h"
     class SqlScanner;
+    struct SelectItem {
+        bool is_agg = false;
+        SelectColumn col;
+        AggregateExpr agg;
+    };
 }
 
 %code {
@@ -33,7 +38,7 @@
 %token END 0 "end of file"
 %token SELECT INSERT UPDATE DELETE
 %token CREATE DROP USE DATABASE TABLE
-%token FROM WHERE SET VALUES INTO AS
+%token FROM WHERE SET VALUE INTO AS
 %token AND OR BETWEEN LIKE NOT NULL_
 %token INDEXED SUM COUNT AVG DEFAULT
 %token EQ NE LE GE LT GT ASSIGN
@@ -52,8 +57,8 @@
 %type <std::unique_ptr<ASTNode>> and_condition or_condition comparison
 %type <std::unique_ptr<ASTNode>> where_opt
 
-%type <SelectColumn> select_item
-%type <std::vector<SelectColumn>> select_columns
+%type <SelectItem> select_item
+%type <std::vector<SelectItem>> select_columns
 %type <AggregateExpr> aggregate_expr
 %type <std::string> column_name_or_star
 %type <std::vector<std::string>> column_list opt_columns
@@ -91,7 +96,18 @@ select_stmt:
     SELECT select_columns FROM IDENTIFIER where_opt
     {
         auto q = std::make_unique<SelectQuery>();
-        q->columns = std::move($2);
+        q->tableName = $4;
+        if ($5) q->where = std::move($5);
+        for (auto& item : $2) {
+            if (item.is_agg) q->aggregates.push_back(std::move(item.agg));
+            else q->columns.push_back(std::move(item.col));
+        }
+        $$ = std::move(q);
+    }
+  | SELECT STAR FROM IDENTIFIER where_opt
+    {
+        auto q = std::make_unique<SelectQuery>();
+        q->star = true;
         q->tableName = $4;
         q->star = false;
         if ($5) q->where = std::move($5);
@@ -110,10 +126,10 @@ select_stmt:
 select_columns:
     select_item
     {
-        $$.clear();
+        $$ = std::vector<SelectItem>();
         $$.push_back(std::move($1));
     }
-    | select_columns COMMA select_item
+  | select_columns COMMA select_item
     {
         $$ = std::move($1);
         $$.push_back(std::move($3));
@@ -123,31 +139,38 @@ select_columns:
 select_item:
     IDENTIFIER
     {
-        SelectColumn col;
-        col.name = $1;
-        col.alias = "";
-        $$ = std::move(col);
+        SelectItem item;
+        item.is_agg = false;
+        item.col.name = $1;
+        item.col.alias = "";
+        $$ = item;
     }
-    | IDENTIFIER AS IDENTIFIER
+  | IDENTIFIER AS IDENTIFIER
     {
-        SelectColumn col;
-        col.name = $1;
-        col.alias = $3;
-        $$ = std::move(col);
+        SelectItem item;
+        item.is_agg = false;
+        item.col.name = $1;
+        item.col.alias = $3;
+        $$ = item;
     }
-    | aggregate_expr
+  | aggregate_expr
     {
-        // Агрегаты хранятся отдельно, но для простоты помещаем в столбцы с пустым именем
-        SelectColumn col;
-        col.name = ""; // маркер агрегата
-        col.alias = "";
-        $$ = std::move(col);
-        // TODO: добавить aggregates в SelectQuery
+        SelectItem item;
+        item.is_agg = true;
+        item.agg = $1;
+        $$ = item;
     }
 ;
 
 aggregate_expr:
-    SUM LPAREN column_name_or_star RPAREN
+    COUNT LPAREN RPAREN
+    {
+        AggregateExpr agg;
+        agg.func = "COUNT";
+        agg.column = "*";
+        $$ = agg;
+    }
+  | SUM LPAREN column_name_or_star RPAREN
     {
         AggregateExpr agg;
         agg.func = "SUM";
@@ -245,7 +268,7 @@ column_ref:
 
 /* INSERT */
 insert_stmt:
-    INSERT INTO IDENTIFIER opt_columns VALUES values_list
+    INSERT INTO IDENTIFIER opt_columns VALUE values_list
     {
         auto q = std::make_unique<InsertQuery>();
         q->tableName = $3;
