@@ -35,7 +35,7 @@ $(TARGET): generate $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS)
 
 clean:
-	rm -f $(GENERATED) $(OBJECTS) $(TARGET)
+	rm -f $(GENERATED) $(OBJECTS) $(TARGET) *.hh
 
 check: $(TARGET)
 	./$(TARGET) test_queries.sql

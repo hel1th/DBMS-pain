@@ -5,14 +5,13 @@
 #include <memory>
 #include <string>
 #include "Schema.h"
-#include "index/IndexManager.h"
+#include "index/include/IndexManager.h"
 #include "storage/PageManager.h"
 #include "storage/RecordManager.h"
 
 
 class Table {
 public:
-
     Table(const std::string& dbPath, const std::string& tableName);
 
     // Создать новую таблицу
@@ -35,11 +34,12 @@ public:
     std::vector<Value> fetch(RecordID rid);
 
 private:
+    Table() = default;
     Schema schema_;
     std::string dbPath_;
-    std::unique_ptr<PageManager>    pageManager_;
-    std::unique_ptr<RecordManager>  recordManager_;
-    std::unique_ptr<IndexManager>   indexManager_;  // nullptr если нет INDEXED колонки
+    std::unique_ptr<PageManager> pageManager_;
+    std::unique_ptr<RecordManager> recordManager_;
+    std::unique_ptr<IndexManager> indexManager_; // nullptr если нет INDEXED колонки
 };
 
 
