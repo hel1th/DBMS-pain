@@ -13,16 +13,9 @@ find_package(Boost REQUIRED)
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-find_path(FLEXLEXER_INCLUDE_DIR FlexLexer.h
-    PATHS /usr/include
-    NO_DEFAULT_PATH
-)
+find_path(FLEXLEXER_INCLUDE_DIR FlexLexer.h PATHS /usr/include NO_DEFAULT_PATH)
 
-if(NOT FLEXLEXER_INCLUDE_DIR)
-    message(FATAL_ERROR "FlexLexer.h not found!")
-endif()
-
-# ==================== Parser & Lexer (Clean) ====================
+# ==================== Parser & Lexer (Forced paths) ====================
 
 BISON_TARGET(SqlParser
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parser/parser.y
@@ -33,15 +26,26 @@ BISON_TARGET(SqlParser
 FLEX_TARGET(SqlLexer
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parser/lexer.l
     ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
+    COMPILE_FLAGS "--header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.h"
 )
 
 ADD_FLEX_BISON_DEPENDENCY(SqlLexer SqlParser)
 
-# ==================== Main Executable ====================
+add_custom_target(generate_parser_sources
+    DEPENDS
+        ${BISON_SqlParser_OUTPUTS}
+        ${FLEX_SqlLexer_OUTPUTS}
+)
+
+set_source_files_properties(
+    ${FLEX_SqlLexer_OUTPUTS}
+    PROPERTIES GENERATED TRUE
+)
+
+# ==================== Executable ====================
 
 add_executable(DBMS_pain
     src/main.cpp
-
     src/parser/AST.cpp
     src/parser/SqlParser.cpp
 
@@ -60,21 +64,20 @@ add_executable(DBMS_pain
     src/index/src/IndexManager.cpp
     src/index/src/pp_allocator.cpp
 
-    # Generated
     ${BISON_SqlParser_OUTPUTS}
     ${FLEX_SqlLexer_OUTPUTS}
 )
 
+add_dependencies(DBMS_pain generate_parser_sources)
+
 target_include_directories(DBMS_pain PRIVATE
     src
     src/index/include
-    ${CMAKE_CURRENT_BINARY_DIR}        # Critical: for parser.h and lexer.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${Boost_INCLUDE_DIRS}
     ${FLEXLEXER_INCLUDE_DIR}
 )
 
-target_compile_options(DBMS_pain PRIVATE 
-    -Wall -Wextra -Wno-deprecated -Wno-unused-parameter
-)
+target_compile_options(DBMS_pain PRIVATE -Wall -Wextra -Wno-deprecated)
 
-message(STATUS "✅ CMake configured successfully")
+message(STATUS "✅ Configured")
