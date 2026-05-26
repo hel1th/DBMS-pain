@@ -3,8 +3,8 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
-#include "AST.h"
-#include "SqlParser.h"
+#include "parser/AST.h"
+#include "parser/SqlParser.h"
 
 int main(int argc, char* argv[]) {
     SqlParser frontend;

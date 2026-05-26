@@ -1,7 +1,7 @@
 %{
 #define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
 
-#include "SqlScanner.h"
+#include "parser/SqlScanner.h"
 #include "parser.h"
 
 void yyerror(const char* msg);
