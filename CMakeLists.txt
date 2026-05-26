@@ -66,18 +66,6 @@ add_executable(DBMS_pain
     ${FLEX_SqlLexer_OUTPUTS}
 )
 
-# Patch lexer AFTER target exists
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_custom_command(TARGET DBMS_pain PRE_BUILD
-        COMMAND sed -i
-            "s/size_t yyFlexLexer::LexerInput( char\\* buf, size_t \\/\\* max_size \\*\\/ )/int yyFlexLexer::LexerInput( char* buf, int max_size )/"
-            ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-        COMMAND sed -i
-            "s/void yyFlexLexer::LexerOutput( const char\\* buf, size_t size )/void yyFlexLexer::LexerOutput( const char* buf, int size )/"
-            ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-        COMMENT "Patching lexer.cpp for Linux/WSL compatibility"
-    )
-endif()
 
 target_include_directories(DBMS_pain PRIVATE
     src
@@ -89,4 +77,4 @@ target_include_directories(DBMS_pain PRIVATE
 target_compile_options(DBMS_pain PRIVATE
     -Wall -Wextra -Wno-deprecated -Wno-unused-parameter
 )
-message(STATUS "✅ CMake configured successfully")
+message(STATUS "======= CMake configured successfully =======")
