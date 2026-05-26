@@ -12,8 +12,12 @@ class IndexManager {
 public:
     // Открывает файл индекса. Если файл существует — загружает дерево.
     // Если нет — создаёт пустое дерево и файл.
-    // filePath пример: "data/mydb/users_id.idx"
     explicit IndexManager(const std::string& filePath);
+    ~IndexManager();
+    
+    // запрещаем копирования индекс манагера
+    IndexManager(const IndexManager&) = delete;
+    IndexManager& operator=(const IndexManager&) = delete;
 
     // Вставить ключ -> RecordID (вызывается при INSERT или UPDATE)
     void insertKey(const Value& key, RecordID rID);
@@ -25,8 +29,6 @@ public:
     // Удалить ключ (вызывается при DELETE)
     void removeKey(const Value& key);
 
-    // Деструктор должен сохранять дерево на диск
-    ~IndexManager();
 
 private:
     std::string filePath_;
