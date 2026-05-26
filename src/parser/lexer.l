@@ -1,8 +1,8 @@
 %{
-#include "SqlScanner.h"
-#include "parser.hpp"
-
 #define YY_DECL int SqlScanner::yylex(yy::parser::semantic_type* yylval, yy::parser::location_type* yyloc)
+
+#include "SqlScanner.h"
+#include "parser.h"
 
 void yyerror(const char* msg);
 %}
@@ -10,7 +10,6 @@ void yyerror(const char* msg);
 %option c++
 %option noyywrap
 %option yylineno
-%option outfile="lexer.cpp"
 %option yyclass="SqlScanner"
 %option prefix="SqlScanner"
 

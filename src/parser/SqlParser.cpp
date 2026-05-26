@@ -1,6 +1,6 @@
 #include "SqlParser.h"
 #include "AST.h"
-#include "parser.hpp"
+#include "parser.h"
 #include "SqlScanner.h"
 #include <sstream>
 #include <memory>
