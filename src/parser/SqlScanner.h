@@ -3,7 +3,7 @@
 #include <istream>
 #include <memory>
 
-#include "parser.h"
+#include "parser.hpp"
 
 #ifndef yyFlexLexer
 #define yyFlexLexer SqlScannerFlexLexer

@@ -139,7 +139,7 @@ class InsertQuery : public ASTNode {
 public:
     std::string tableName;
     std::vector<std::string> columns; // перечисленные колонки
-    // каждый вложенный вектор = одна строка VALUE
+    // каждый вложенный вектор = одна строка VALUES
     std::vector<std::vector<std::unique_ptr<ASTNode>>> values;
 
     InsertQuery();

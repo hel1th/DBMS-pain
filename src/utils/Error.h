@@ -22,8 +22,4 @@ struct IndexError : DbException {
     using DbException::DbException;
 };
 
-struct UndoLogError : DbException {
-    using DbException::DbException;
-};
-
 #endif // DBMS_PAIN_ERROR_H

@@ -31,7 +31,6 @@ void IndexManager::load() {
             file.read(reinterpret_cast<char*>(&recordID), sizeof(recordID));
             intTree_->insert({key, recordID});
         }
-        
     } else if (type == 'S') {
         strTree_ = std::make_unique<BspTree<std::string, RecordID>>();
         size_t count;
