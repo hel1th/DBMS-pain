@@ -9,13 +9,28 @@ set(CMAKE_C_COMPILER /usr/bin/gcc)
 set(CMAKE_CXX_COMPILER /usr/bin/g++)
 
 # ==================== Dependencies ====================
-find_package(Boost REQUIRED)
+find_package(Boost CONFIG REQUIRED)
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-find_path(FLEXLEXER_INCLUDE_DIR FlexLexer.h PATHS /usr/include NO_DEFAULT_PATH)
+# Расширенный список путей (macOS Homebrew + стандартные Linux пути)
+find_path(FLEXLEXER_INCLUDE_DIR FlexLexer.h
+    PATHS
+        /usr/include
+        /usr/local/include
+        /usr/local/opt/flex/include          # Homebrew на macOS Intel
+        /opt/homebrew/opt/flex/include       # Homebrew на macOS Apple Silicon
+        /usr/include/flex                    # Некоторые дистрибутивы Linux
+    DOC "Directory containing FlexLexer.h"
+)
 
-# ==================== Parser & Lexer (Forced paths) ====================
+if(NOT FLEXLEXER_INCLUDE_DIR)
+    message(FATAL_ERROR "FlexLexer.h not found! Install flex + libfl-dev (Linux) or flex (macOS via brew).")
+else()
+    message(STATUS "Found FlexLexer.h in ${FLEXLEXER_INCLUDE_DIR}")
+endif()
+
+# ==================== Parser & Lexer (Clean) ====================
 
 BISON_TARGET(SqlParser
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parser/parser.y
@@ -26,26 +41,34 @@ BISON_TARGET(SqlParser
 FLEX_TARGET(SqlLexer
     ${CMAKE_CURRENT_SOURCE_DIR}/src/parser/lexer.l
     ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
-    COMPILE_FLAGS "--header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.h"
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(LEXER_CPP ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
+    add_custom_command(TARGET DBMS_pain PRE_BUILD
+        COMMAND sed -i 's/size_t yyFlexLexer::LexerInput( char* buf, size_t \/\* max_size \*\/ )/int yyFlexLexer::LexerInput( char* buf, int max_size )/'
+            ${LEXER_CPP}
+        COMMAND sed -i 's/void yyFlexLexer::LexerOutput( const char* buf, size_t size )/void yyFlexLexer::LexerOutput( const char* buf, int size )/'
+            ${LEXER_CPP}
+        COMMENT "Patching lexer.cpp for Linux/WSL compatibility"
+        DEPENDS ${LEXER_CPP}
+    )
+endif()
 
 ADD_FLEX_BISON_DEPENDENCY(SqlLexer SqlParser)
 
-add_custom_target(generate_parser_sources
-    DEPENDS
-        ${BISON_SqlParser_OUTPUTS}
-        ${FLEX_SqlLexer_OUTPUTS}
-)
-
 set_source_files_properties(
-    ${FLEX_SqlLexer_OUTPUTS}
+    ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/parser.h
     PROPERTIES GENERATED TRUE
 )
 
-# ==================== Executable ====================
+# ==================== Main Executable ====================
 
 add_executable(DBMS_pain
     src/main.cpp
+
     src/parser/AST.cpp
     src/parser/SqlParser.cpp
 
@@ -64,20 +87,21 @@ add_executable(DBMS_pain
     src/index/src/IndexManager.cpp
     src/index/src/pp_allocator.cpp
 
+    # Generated
     ${BISON_SqlParser_OUTPUTS}
     ${FLEX_SqlLexer_OUTPUTS}
 )
 
-add_dependencies(DBMS_pain generate_parser_sources)
-
 target_include_directories(DBMS_pain PRIVATE
     src
     src/index/include
-    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}        # Critical: for parser.h and lexer.cpp
     ${Boost_INCLUDE_DIRS}
     ${FLEXLEXER_INCLUDE_DIR}
 )
 
-target_compile_options(DBMS_pain PRIVATE -Wall -Wextra -Wno-deprecated)
+target_compile_options(DBMS_pain PRIVATE 
+    -Wall -Wextra -Wno-deprecated -Wno-unused-parameter
+)
 
-message(STATUS "✅ Configured")
+message(STATUS "✅ CMake configured successfully")
