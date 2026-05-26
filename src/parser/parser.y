@@ -109,6 +109,15 @@ select_stmt:
         auto q = std::make_unique<SelectQuery>();
         q->star = true;
         q->tableName = $4;
+        q->star = false;
+        if ($5) q->where = std::move($5);
+        $$ = std::move(q);
+    }
+    | SELECT STAR FROM IDENTIFIER where_opt
+    {
+        auto q = std::make_unique<SelectQuery>();
+        q->star = true;
+        q->tableName = $4;
         if ($5) q->where = std::move($5);
         $$ = std::move(q);
     }
