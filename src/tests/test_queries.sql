@@ -13,6 +13,11 @@ CREATE TABLE employees (
     created_at int
 );
 
+CREATE TABLE users (
+    id INT INDEXED,
+    name STRING NOT NULL,
+    age INT
+);
 -- РАЗДЕЛ 3: DML - INSERT
 -- Вставка одной строки
 INSERT INTO employees (id, name, department, salary, status) VALUE (1, "Alice", "IT", 70000, "active");

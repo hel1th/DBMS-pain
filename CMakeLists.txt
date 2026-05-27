@@ -68,6 +68,7 @@ add_executable(DBMS_pain
     src/index/src/pp_allocator.cpp
     ${BISON_SqlParser_OUTPUTS}
     ${FLEX_SqlLexer_OUTPUTS}
+    src/tests/TestExecutor.cpp
 )
 
 

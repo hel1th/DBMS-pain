@@ -404,3 +404,30 @@ Row Executor::project(const std::vector<Value>& record, const Schema& schema,
     }
     return row;
 }
+
+std::string Executor::toJSON(const std::vector<Row>& rows) {
+    std::string out = "[\n";
+    for (size_t i = 0; i < rows.size(); i++) {
+        out += "  {";
+        const auto& row = rows[i];
+        for (size_t j = 0; j < row.size(); j++) {
+            const auto& [name, value] = row[j];
+            out += "\"" + name + "\": ";
+            if (val::isNull(value)) {
+                out += "null";
+            } else if (val::isInt(value)) {
+                out += std::to_string(val::getInt(value));
+            } else {
+                out += "\"" + val::getString(value) + "\"";
+            }
+            if (j + 1 < row.size())
+                out += ", ";
+        }
+        out += "}";
+        if (i + 1 < rows.size())
+            out += ",";
+        out += "\n";
+    }
+    out += "]";
+    return out;
+}
