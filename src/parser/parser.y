@@ -41,6 +41,7 @@
 %token FROM WHERE SET VALUE INTO AS
 %token AND OR BETWEEN LIKE NOT NULL_
 %token INDEXED SUM COUNT AVG DEFAULT
+%token REVERT TIMESTAMP
 %token EQ NE LE GE LT GT ASSIGN
 %token SEMICOLON COMMA LPAREN RPAREN STAR
 %token <int> INTEGER
@@ -56,6 +57,7 @@
 %type <std::unique_ptr<ASTNode>> condition expr literal column_ref
 %type <std::unique_ptr<ASTNode>> and_condition or_condition comparison
 %type <std::unique_ptr<ASTNode>> where_opt
+%type <std::unique_ptr<ASTNode>> revert_stmt
 
 %type <SelectItem> select_item
 %type <std::vector<SelectItem>> select_columns
@@ -89,6 +91,7 @@ query:
     | create_database_stmt { $$ = std::move($1); }
     | drop_database_stmt   { $$ = std::move($1); }
     | use_stmt           { $$ = std::move($1); }
+    | revert_stmt    { $$ = std::move($1); }
 ;
 
 /* SELECT */
@@ -439,6 +442,14 @@ use_stmt:
     {
         auto q = std::make_unique<UseQuery>($2);
         $$ = std::move(q);
+    }
+;
+
+/* REVERT */
+revert_stmt:
+    REVERT IDENTIFIER TIMESTAMP
+    {
+        $$ = std::make_unique<RevertQuery>($2, $3);
     }
 ;
 

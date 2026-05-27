@@ -20,6 +20,7 @@ enum class NodeKind {
     CREATE_DATABASE_QUERY,
     DROP_DATABASE_QUERY,
     USE_QUERY,
+    REVERT_QUERY,
     LITERAL,
     COLUMN_REF,
     BINARY_OP,
@@ -208,6 +209,14 @@ class UseQuery : public ASTNode {
 public:
     std::string dbName;
     explicit UseQuery(const std::string& name);
+    [[nodiscard]] std::string toString() const override;
+};
+
+class RevertQuery : public ASTNode {
+public:
+    std::string tableName;
+    std::string targetTimestamp; // "yyyy.mm.dd-hh:mm:ss.msmsms"
+    explicit RevertQuery(std::string t, std::string ts);
     [[nodiscard]] std::string toString() const override;
 };
 

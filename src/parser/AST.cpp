@@ -179,3 +179,9 @@ std::string DropDatabaseQuery::toString() const { return "DROP DATABASE " + dbNa
 
 UseQuery::UseQuery(const std::string& name) : ASTNode(NodeKind::USE_QUERY), dbName(name) {}
 std::string UseQuery::toString() const { return "USE " + dbName; }
+
+RevertQuery::RevertQuery(std::string t, std::string ts)
+    : ASTNode(NodeKind::REVERT_QUERY), tableName(std::move(t)), targetTimestamp(std::move(ts)) {}
+std::string RevertQuery::toString() const {
+    return "REVERT " + tableName + " AT " + targetTimestamp;
+}
