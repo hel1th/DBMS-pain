@@ -1,7 +1,7 @@
-#include "SqlParser.h"
-#include "AST.h"
+#include "parser/SqlParser.h"
+#include "parser/AST.h"
 #include "parser.h"
-#include "SqlScanner.h"
+#include "parser/SqlScanner.h"
 #include <sstream>
 #include <memory>
 

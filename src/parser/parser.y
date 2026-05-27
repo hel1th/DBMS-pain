@@ -10,11 +10,11 @@
 %lex-param { SqlScanner& scanner }
 
 %code requires {
-    #include "AST.h"
+    #include "parser/AST.h"
     #include <memory>
     #include <vector>
     #include <string>
-    #include "../utils/Value.h"
+    #include "utils/Value.h"
     class SqlScanner;
     struct SelectItem {
         bool is_agg = false;
@@ -24,7 +24,7 @@
 }
 
 %code {
-    #include "SqlScanner.h"
+    #include "parser/SqlScanner.h"
         static int yylex(yy::parser::semantic_type* yylval,
                  yy::parser::location_type* yyloc,
                  std::unique_ptr<ASTNode>& /*result*/,
@@ -41,6 +41,7 @@
 %token FROM WHERE SET VALUE INTO AS
 %token AND OR BETWEEN LIKE NOT NULL_
 %token INDEXED SUM COUNT AVG DEFAULT
+%token REVERT TIMESTAMP
 %token EQ NE LE GE LT GT ASSIGN
 %token SEMICOLON COMMA LPAREN RPAREN STAR
 %token <int> INTEGER
@@ -56,6 +57,7 @@
 %type <std::unique_ptr<ASTNode>> condition expr literal column_ref
 %type <std::unique_ptr<ASTNode>> and_condition or_condition comparison
 %type <std::unique_ptr<ASTNode>> where_opt
+%type <std::unique_ptr<ASTNode>> revert_stmt
 
 %type <SelectItem> select_item
 %type <std::vector<SelectItem>> select_columns
@@ -89,6 +91,7 @@ query:
     | create_database_stmt { $$ = std::move($1); }
     | drop_database_stmt   { $$ = std::move($1); }
     | use_stmt           { $$ = std::move($1); }
+    | revert_stmt    { $$ = std::move($1); }
 ;
 
 /* SELECT */
@@ -105,15 +108,6 @@ select_stmt:
         $$ = std::move(q);
     }
   | SELECT STAR FROM IDENTIFIER where_opt
-    {
-        auto q = std::make_unique<SelectQuery>();
-        q->star = true;
-        q->tableName = $4;
-        q->star = false;
-        if ($5) q->where = std::move($5);
-        $$ = std::move(q);
-    }
-    | SELECT STAR FROM IDENTIFIER where_opt
     {
         auto q = std::make_unique<SelectQuery>();
         q->star = true;
@@ -448,6 +442,14 @@ use_stmt:
     {
         auto q = std::make_unique<UseQuery>($2);
         $$ = std::move(q);
+    }
+;
+
+/* REVERT */
+revert_stmt:
+    REVERT IDENTIFIER TIMESTAMP
+    {
+        $$ = std::make_unique<RevertQuery>($2, $3);
     }
 ;
 

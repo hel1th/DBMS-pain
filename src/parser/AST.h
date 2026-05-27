@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "engine/Schema.h" // ColType
+#include "engine/Schema.h"
 #include "utils/Value.h"
 
 
@@ -20,6 +20,7 @@ enum class NodeKind {
     CREATE_DATABASE_QUERY,
     DROP_DATABASE_QUERY,
     USE_QUERY,
+    REVERT_QUERY,
     LITERAL,
     COLUMN_REF,
     BINARY_OP,
@@ -59,7 +60,6 @@ public:
     explicit Literal(Value v);
     [[nodiscard]] std::string toString() const override;
 
-    // используем функции из Value.h — не дублируем
     bool isNull() const { return val::isNull(value); }
     bool isInt() const { return val::isInt(value); }
     bool isString() const { return val::isString(value); }
@@ -209,6 +209,14 @@ class UseQuery : public ASTNode {
 public:
     std::string dbName;
     explicit UseQuery(const std::string& name);
+    [[nodiscard]] std::string toString() const override;
+};
+
+class RevertQuery : public ASTNode {
+public:
+    std::string tableName;
+    std::string targetTimestamp; // "yyyy.mm.dd-hh:mm:ss.msmsms"
+    explicit RevertQuery(std::string t, std::string ts);
     [[nodiscard]] std::string toString() const override;
 };
 

@@ -1,0 +1,98 @@
+[
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/main.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/main.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/main.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/parser/AST.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/parser/AST.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/parser/AST.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/parser/AST.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/parser/SqlParser.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/parser/SqlParser.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/parser/SqlParser.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/parser/SqlParser.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/storage/Serializer.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/storage/Serializer.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/storage/Serializer.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/storage/Serializer.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/storage/RecordManager.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/storage/RecordManager.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/storage/RecordManager.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/storage/RecordManager.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/storage/PageManager.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/storage/PageManager.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/storage/PageManager.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/storage/PageManager.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/catalog/SystemCatalog.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/catalog/SystemCatalog.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/catalog/SystemCatalog.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/catalog/SystemCatalog.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/engine/Schema.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/engine/Schema.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/engine/Schema.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/engine/Schema.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/engine/Table.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/engine/Table.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/engine/Table.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/engine/Table.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/engine/Database.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/engine/Database.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/engine/Database.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/engine/Database.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/engine/Executor.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/engine/Executor.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/engine/Executor.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/engine/Executor.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/index/src/BStarPlusTree.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/index/src/BStarPlusTree.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/index/src/BStarPlusTree.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/index/src/BStarPlusTree.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/index/src/IndexManager.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/index/src/IndexManager.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/index/src/IndexManager.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/index/src/IndexManager.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/src/index/src/pp_allocator.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/src/index/src/pp_allocator.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/src/index/src/pp_allocator.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/src/index/src/pp_allocator.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/parser.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/build/parser.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/build/parser.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/parser.cpp.o"
+},
+{
+  "directory": "/home/hel1th/Dev/pizda/DBMS-pain/build",
+  "command": "/usr/bin/g++  -I/home/hel1th/Dev/pizda/DBMS-pain/src -I/home/hel1th/Dev/pizda/DBMS-pain/src/index/include -I/home/hel1th/Dev/pizda/DBMS-pain/build -std=gnu++20 -Wall -Wextra -Wno-deprecated -o CMakeFiles/DBMS_pain.dir/lexer.cpp.o -c /home/hel1th/Dev/pizda/DBMS-pain/build/lexer.cpp",
+  "file": "/home/hel1th/Dev/pizda/DBMS-pain/build/lexer.cpp",
+  "output": "CMakeFiles/DBMS_pain.dir/lexer.cpp.o"
+}
+]

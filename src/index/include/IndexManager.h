@@ -1,12 +1,12 @@
 #ifndef DBMS_PAIN_INDEXMANAGER_H
 #define DBMS_PAIN_INDEXMANAGER_H
+#include <filesystem>
+#include <fstream>
+#include <functional>
 #include <string>
 #include "BStarPlusTree.h"
-#include "../storage/RecordManager.h"
-#include "../utils/Error.h"
-#include <fstream>
-#include <filesystem>
-#include <functional>
+#include "storage/RecordManager.h"
+#include "utils/Error.h"
 
 class IndexManager {
 public:
@@ -39,7 +39,6 @@ private:
 
     void load(); // читает файл -> заполняет дерево
     void save(); // сериализует дерево -> пишет в файл
-
 };
 
 #endif // DBMS_PAIN_INDEXMANAGER_H
