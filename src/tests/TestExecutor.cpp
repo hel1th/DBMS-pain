@@ -116,13 +116,13 @@ void testLogicalExpressions() {
 
     // Приоритет AND над OR
     r = run(ex, parser,
-            "SELECT id FROM people WHERE age > 30 AND salary < 7500 OR name == \"Eve\";");
+            "SELECT id FROM people WHERE age > 30 AND salary < 7500 OR name = \"Eve\";");
     TEST_TRUE(r.ok && r.rows.size() == 2, "AND over OR priority -> 2 rows");
 
 
     // Скобки меняют приоритет
     r = run(ex, parser,
-            "SELECT id FROM people WHERE age > 30 AND (salary < 7500 OR name == \"Eve\");");
+            "SELECT id FROM people WHERE age > 30 AND (salary < 7500 OR name = \"Eve\");");
     TEST_TRUE(r.ok && r.rows.size() == 1, "Parentheses change priority -> 1 row");
     int id = asInt(getValue(r.rows[0], "id"));
     TEST_EQUAL_INT(id, 3, "Correct row id = 3 (Charlie)");
@@ -142,7 +142,7 @@ void testLogicalExpressions() {
     // UPDATE с составным условием
     r = run(ex, parser, "UPDATE people SET salary = 9999 WHERE age >= 30 AND age <= 35;");
     TEST_TRUE(r.ok && r.affected == 2, "UPDATE with AND: age between 30 and 35 -> 2 rows affected");
-    r = run(ex, parser, "SELECT salary FROM people WHERE name == \"Bob\";");
+    r = run(ex, parser, "SELECT salary FROM people WHERE name = \"Bob\";");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "salary")) == 9999, "Bob salary updated to 9999");
 
 
@@ -183,19 +183,19 @@ void testAggregateFunctions() {
 
     r = run(ex, parser, "SELECT COUNT(*) FROM sales;");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "COUNT(*)")) == 4, "COUNT(*) = 4");
-    r = run(ex, parser, "SELECT COUNT(*) FROM sales WHERE product == \"apple\";");
-    TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "COUNT(*)")) == 2, "COUNT(*) with WHERE == 2");
+    r = run(ex, parser, "SELECT COUNT(*) FROM sales WHERE product = \"apple\";");
+    TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "COUNT(*)")) == 2, "COUNT(*) with WHERE = 2");
     r = run(ex, parser, "SELECT SUM(price) FROM sales;");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "SUM(price)")) == 550, "SUM(price) = 550");
-    r = run(ex, parser, "SELECT SUM(quantity) FROM sales WHERE product == \"apple\";");
+    r = run(ex, parser, "SELECT SUM(quantity) FROM sales WHERE product = \"apple\";");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "SUM(quantity)")) == 7,
-              "SUM(quantity) with WHERE == 7");
+              "SUM(quantity) with WHERE = 7");
     r = run(ex, parser, "SELECT AVG(price) FROM sales;");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "AVG(price)")) == 137,
               "AVG(price) = 137 (int division)");
     r = run(ex, parser, "SELECT AVG(quantity) FROM sales WHERE price >= 150;");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "AVG(quantity)")) == 2,
-              "AVG(quantity) with WHERE == 2");
+              "AVG(quantity) with WHERE = 2");
 
 
     // несколько агрегатов
@@ -208,11 +208,10 @@ void testAggregateFunctions() {
 
 
     // алиасы
-    // r = run(ex, parser, "SELECT SUM(quantity) AS total_qty, AVG(price) AS avg_price FROM
-    // sales;"); TEST_TRUE(r.ok, "Aggregates with AS"); TEST_EQUAL_INT(asInt(getValue(r.rows[0],
-    // "total_qty")), 11, "SUM(quantity) AS total_qty = 11");
-    // TEST_EQUAL_INT(asInt(getValue(r.rows[0], "avg_price")), 137, "AVG(price) AS avg_price =
-    // 137");
+    r = run(ex, parser, "SELECT SUM(quantity) AS total_qty, AVG(price) AS avg_price FROM sales;"); 
+    TEST_TRUE(r.ok, "Aggregates with AS"); 
+    TEST_EQUAL_INT(asInt(getValue(r.rows[0], "total_qty")), 11, "SUM(quantity) AS total_qty = 11");
+    TEST_EQUAL_INT(asInt(getValue(r.rows[0], "avg_price")), 137, "AVG(price) AS avg_price = 137");
 
 
     // пустая таблица
@@ -300,7 +299,7 @@ void testLargeData() {
         if ((i - 1) % 5 == 3 && curVal > 300)
             toDelete++;
     }
-    r = run(ex, parser, "DELETE FROM numbers WHERE category == 3 AND val > 300;");
+    r = run(ex, parser, "DELETE FROM numbers WHERE category = 3 AND val > 300;");
     TEST_TRUE(r.ok && r.affected == toDelete, "DELETE with AND condition");
     r = run(ex, parser, "SELECT COUNT(*) FROM numbers;");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "COUNT(*)")) == N - toDelete,
@@ -308,7 +307,7 @@ void testLargeData() {
 
     // сложный OR со скобками
     r = run(ex, parser,
-            "SELECT COUNT(*) FROM numbers WHERE (category == 1 AND val < 1000) OR (category == 4 "
+            "SELECT COUNT(*) FROM numbers WHERE (category = 1 AND val < 1000) OR (category = 4 "
             "AND val > 2000);");
     int expected = 0;
     for (int i = 1; i <= N; ++i) {

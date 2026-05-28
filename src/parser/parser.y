@@ -149,7 +149,7 @@ select_item:
         SelectItem item;
         item.is_agg = false;
         item.col.name = $1;
-        item.col.alias = $3;
+        item.col.alias = "";
         $$ = item;
     }
   | aggregate_expr
@@ -159,6 +159,14 @@ select_item:
         item.agg = $1;
         $$ = item;
     }
+  | aggregate_expr AS IDENTIFIER
+    {
+        SelectItem item;
+        item.is_agg = true;
+        item.agg = std::move($1);
+        item.agg.alias = $3;
+        $$ = std::move(item);
+    }
 ;
 
 aggregate_expr:
@@ -167,6 +175,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "COUNT";
         agg.column = "*";
+        agg.alias = "";
         $$ = agg;
     }
   | SUM LPAREN column_name_or_star RPAREN
@@ -174,6 +183,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "SUM";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
   | COUNT LPAREN column_name_or_star RPAREN
@@ -181,6 +191,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "COUNT";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
   | AVG LPAREN column_name_or_star RPAREN
@@ -188,6 +199,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "AVG";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
 ;

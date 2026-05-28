@@ -57,7 +57,7 @@ TIMESTAMP       [0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6
 ("string"|"STRING")     { return yy::parser::token::STRING_TYPE; }
 
  /* Операторы */
-"=="            { return yy::parser::token::EQ; }
+"="            { return yy::parser::token::EQ; }
 "!="            { return yy::parser::token::NE; }
 "<="            { return yy::parser::token::LE; }
 ">="            { return yy::parser::token::GE; }
