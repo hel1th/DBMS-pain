@@ -1,17 +1,17 @@
 #ifndef DBMS_PAIN_EXECUTOR_H
 #define DBMS_PAIN_EXECUTOR_H
+#include "Database.h"
+#include "catalog/SystemCatalog.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Database.h"
-#include "catalog/SystemCatalog.h"
 #include "parser/AST.h"
+#include "undo-log/UndoLogManager.h"
 #include "utils/Value.h"
 
-
 using Row = std::vector<std::pair<std::string, Value>>;
-
 
 struct QueryResult {
     bool ok = true;
@@ -21,7 +21,7 @@ struct QueryResult {
 };
 class Executor {
 public:
-    Executor();
+    explicit Executor(UndoLogManager* undoLog = nullptr);
 
     QueryResult execute(ASTNode* node);
 
@@ -31,6 +31,7 @@ private:
     std::string currentDb_;
     std::unordered_map<std::string, std::unique_ptr<Database>> databases_;
     SystemCatalog catalog_;
+    UndoLogManager* undoLog_ = nullptr;
 
     QueryResult execInsert(const InsertQuery& q);
     QueryResult execSelect(const SelectQuery& q);
@@ -41,10 +42,16 @@ private:
     QueryResult execCreateDatabase(const CreateDatabaseQuery& q);
     QueryResult execDropDatabase(const DropDatabaseQuery& q);
     QueryResult execUse(const UseQuery& q);
+    QueryResult execRevert(const RevertQuery& q);
+
+    std::vector<uint8_t> serializeRow(const std::vector<Value>& record);
+    std::vector<Value> deserializeRow(const std::vector<uint8_t>& buf);
+    std::vector<uint8_t> serializeKey(const std::vector<Value>& record, const Schema& schema);
 
     Database& currentDatabase();
 
-    // Использует resolve, чтобы вычислить обе стороны условия WHERE, обходя дерево рекурсивно
+    // Использует resolve, чтобы вычислить обе стороны условия WHERE, обходя
+    // дерево рекурсивно
     bool matches(const std::vector<Value>& record, const Schema& schema, const ASTNode* where);
 
     Value resolve(const ASTNode* node, const std::vector<Value>& record, const Schema& schema);
@@ -52,6 +59,5 @@ private:
     static Row project(const std::vector<Value>& record, const Schema& schema,
                        const SelectQuery& q);
 };
-
 
 #endif // DBMS_PAIN_EXECUTOR_H

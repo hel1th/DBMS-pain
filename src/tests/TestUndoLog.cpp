@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "storage/UndoLogManager.h"
+#include "undo-log/UndoLogManager.h"
 
 // ----- Оператор вывода для вектора байт -----
 std::ostream& operator<<(std::ostream& os, const std::vector<uint8_t>& v) {

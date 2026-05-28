@@ -1,11 +1,13 @@
 #include "engine/DBMS_Engine.h"
 #include <iostream>
+#include "engine/Executor.h"
 #include "logger/AccessLogger.h"
 #include "logger/LogRecord.h"
 
 namespace dbms {
 
-    DBMSEngine::DBMSEngine(const std::string& logFilePath) : logger_(logFilePath) {}
+    DBMSEngine::DBMSEngine(const std::string& logFilePath) :
+        logger_(logFilePath), undoLogManager_("./data/undo.log"), executor_(&undoLogManager_) {}
 
     void DBMSEngine::processQueryBuffer(const std::string& queryText,
                                         const std::string& sessionId) {

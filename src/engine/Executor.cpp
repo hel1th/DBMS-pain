@@ -1,8 +1,10 @@
-#include "Executor.h"
-
+#include "engine/Executor.h"
+#include <cstdint>
 #include <regex>
+#include "undo-log/UndoLogManager.h"
 
-Executor::Executor() : catalog_("./data") {
+
+Executor::Executor(UndoLogManager* undoLog) : catalog_("./data"), undoLog_(undoLog) {
     for (const auto& name: catalog_.listDatabases()) {
         databases_[name] = std::make_unique<Database>("./data/" + name, name);
     }
@@ -27,7 +29,6 @@ QueryResult Executor::execute(ASTNode* node) {
     if (!node)
         return {false, "Empty query", {}, 0};
 
-
     switch (node->kind) {
         case NodeKind::INSERT_QUERY:
             return execInsert(*dynamic_cast<InsertQuery*>(node));
@@ -45,6 +46,8 @@ QueryResult Executor::execute(ASTNode* node) {
             return execCreateDatabase(*dynamic_cast<CreateDatabaseQuery*>(node));
         case NodeKind::DROP_DATABASE_QUERY:
             return execDropDatabase(*dynamic_cast<DropDatabaseQuery*>(node));
+        case NodeKind::REVERT_QUERY:
+            return execRevert(*dynamic_cast<RevertQuery*>(node));
         case NodeKind::USE_QUERY:
             return execUse(*dynamic_cast<UseQuery*>(node));
         default:
@@ -93,12 +96,10 @@ QueryResult Executor::execDropTable(const DropTableQuery& q) {
     return {true, "", {}, 0};
 }
 
-
 QueryResult Executor::execInsert(const InsertQuery& q) {
     Database& db = currentDatabase();
     Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
-
 
     int affected = 0;
     for (const auto& rowAst: q.values) {
@@ -131,6 +132,11 @@ QueryResult Executor::execInsert(const InsertQuery& q) {
         }
 
         tbl.insert(record);
+        if (undoLog_) {
+            auto keys = serializeKey(record, schema);
+            undoLog_->logUndoInsert(currentDb_ + "." + q.tableName,
+                                    UndoLogManager::getCurrentTimeMs(), keys);
+        }
         affected++;
     }
 
@@ -151,6 +157,13 @@ QueryResult Executor::execDelete(const DeleteQuery& q) {
     });
 
     for (auto recordID: toDelete) {
+        if (undoLog_) {
+            auto old = tbl.fetch(recordID);
+            auto keys = serializeKey(old, schema);
+            auto rowData = serializeRow(old);
+            undoLog_->logUndoDelete(currentDb_ + "." + q.tableName,
+                                    UndoLogManager::getCurrentTimeMs(), keys, rowData);
+        }
         tbl.remove(recordID);
         affected++;
     }
@@ -181,6 +194,13 @@ QueryResult Executor::execUpdate(const UpdateQuery& q) {
     });
 
     for (auto& [recordID, newRecord]: toUpdate) {
+        if (undoLog_) {
+            auto old = tbl.fetch(recordID);
+            auto keys = serializeKey(old, schema);
+            auto rowData = serializeRow(old);
+            undoLog_->logUndoUpdate(currentDb_ + "." + q.tableName,
+                                    UndoLogManager::getCurrentTimeMs(), keys, rowData);
+        }
         tbl.update(recordID, newRecord);
         affected++;
     }
@@ -281,12 +301,10 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
     return {true, "", rows, 0};
 }
 
-
 // Resolves Values for cmp ops
 // For constansts aka Literals returns themselves Value(1)
-// For column name aka ColumnRef id (example Record={id: 5} ) returns value of this column Value(5)
-// If another Nodekind THROWS
-// Operation: id == 1
+// For column name aka ColumnRef id (example Record={id: 5} ) returns value of
+// this column Value(5) If another Nodekind THROWS Operation: id == 1
 Value Executor::resolve(const ASTNode* node, const std::vector<Value>& record,
                         const Schema& schema) {
     if (node->kind == NodeKind::LITERAL) {
@@ -306,7 +324,8 @@ Value Executor::resolve(const ASTNode* node, const std::vector<Value>& record,
     throw SemanticError("Unexpected node type in expression");
 }
 
-// returns wether expression ( OR AND binary{==, >= ...} BETWEEN LIKE ) is true or false
+// returns wether expression ( OR AND binary{==, >= ...} BETWEEN LIKE ) is true
+// or false
 bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
                        const ASTNode* where) {
     if (!where)
@@ -384,7 +403,6 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
     }
 }
 
-
 Row Executor::project(const std::vector<Value>& record, const Schema& schema,
                       const SelectQuery& q) {
     Row row;
@@ -432,4 +450,137 @@ std::string Executor::toJSON(const std::vector<Row>& rows) {
     }
     out += "]";
     return out;
+}
+
+std::vector<uint8_t> Executor::serializeRow(const std::vector<Value>& record) {
+    std::vector<uint8_t> buf;
+    for (const auto& v: record) {
+        if (val::isNull(v)) {
+            buf.push_back(0);
+        } else if (val::isInt(v)) {
+            buf.push_back(1);
+            int32_t n = val::getInt(v);
+            uint8_t* p = reinterpret_cast<uint8_t*>(&n);
+            buf.insert(buf.end(), p, p + 4);
+        } else {
+            buf.push_back(2);
+            const std::string& s = val::getString(v);
+            uint32_t len = static_cast<uint32_t>(s.size());
+            uint8_t* p = reinterpret_cast<uint8_t*>(&len);
+            buf.insert(buf.end(), p, p + 4);
+            buf.insert(buf.end(), s.begin(), s.end());
+        }
+    }
+    return buf;
+}
+
+std::vector<Value> Executor::deserializeRow(const std::vector<uint8_t>& buf) {
+    std::vector<Value> record;
+    size_t i = 0;
+    while (i < buf.size()) {
+        uint8_t tag = buf[i++];
+        if (tag == 0) {
+            record.push_back(std::nullopt);
+        } else if (tag == 1) {
+            int32_t n;
+            std::memcpy(&n, buf.data() + i, 4);
+            i += 4;
+            record.push_back(Value(n));
+        } else {
+            uint32_t len;
+            std::memcpy(&len, buf.data() + i, 4);
+            i += 4;
+            std::string s(buf.begin() + i, buf.begin() + i + len);
+            i += len;
+            record.push_back(Value(s));
+        }
+    }
+    return record;
+}
+
+std::vector<uint8_t> Executor::serializeKey(const std::vector<Value>& record,
+                                            const Schema& schema) {
+    int idxCol = schema.indexedColumn();
+    if (idxCol != -1)
+        return serializeRow({record[idxCol]});
+    return serializeRow(record);
+}
+static uint64_t parseTimestamp(const std::string& ts) {
+    // "yyyy.mm.dd-hh:mm:ss.msmsms"
+    int year, month, day, hour, min, sec, ms;
+    if (std::sscanf(ts.c_str(), "%d.%d.%d-%d:%d:%d.%d", &year, &month, &day, &hour, &min, &sec,
+                    &ms) != 7) {
+        throw SemanticError("Invalid timestamp format: " + ts +
+                            " (expected yyyy.mm.dd-hh:mm:ss.msmsms)");
+    }
+
+    std::tm t{};
+    t.tm_year = year - 1900;
+    t.tm_mon = month - 1;
+    t.tm_mday = day;
+    t.tm_hour = hour;
+    t.tm_min = min;
+    t.tm_sec = sec;
+    t.tm_isdst = -1;
+
+    std::time_t epoch = std::mktime(&t);
+    if (epoch == -1)
+        throw SemanticError("Cannot convert timestamp: " + ts);
+
+    return static_cast<uint64_t>(epoch) * 1000ULL + ms;
+}
+
+QueryResult Executor::execRevert(const RevertQuery& q) {
+    if (!undoLog_)
+        return {false, "Undo log not configured", {}, 0};
+
+    Database& db = currentDatabase();
+    Table& tbl = db.getTable(q.tableName);
+    const Schema& schema = tbl.schema();
+
+    std::string fullName = currentDb_ + "." + q.tableName;
+
+    uint64_t timeMs = parseTimestamp(q.targetTimestamp);
+    auto records = undoLog_->getRecordsToRevert(fullName, timeMs);
+
+    int affected = 0;
+    for (const auto& rec: records) { // уже в порядке новые ->старые
+        switch (rec.actionType) {
+            case RevertActionType::REVERT_INSERT: {
+                auto key = deserializeRow(rec.keys);
+                int idxCol = schema.indexedColumn();
+
+                if (idxCol == -1)
+                    throw SemanticError("Cannot revert INSERT without indexed column");
+
+                RecordID rid = tbl.findByIndex(schema.columns[idxCol].name, key[0]);
+                tbl.remove(rid);
+                break;
+            }
+
+            case RevertActionType::REVERT_DELETE: {
+                auto row = deserializeRow(rec.oldRowData);
+                tbl.insert(row);
+                break;
+            }
+
+            case RevertActionType::REVERT_UPDATE: {
+                auto oldRow = deserializeRow(rec.oldRowData);
+                auto key = deserializeRow(rec.keys);
+                int idxCol = schema.indexedColumn();
+
+                if (idxCol == -1)
+                    throw SemanticError("Cannot revert UPDATE without indexed column");
+
+                RecordID rid = tbl.findByIndex(schema.columns[idxCol].name, key[0]);
+                tbl.update(rid, oldRow);
+                break;
+            }
+        }
+        affected++;
+    }
+
+    undoLog_->truncateLog(timeMs);
+
+    return {true, "", {}, affected};
 }

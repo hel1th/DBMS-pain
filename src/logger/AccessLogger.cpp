@@ -1,21 +1,27 @@
 #include "AccessLogger.h"
+#include <filesystem>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
 
 namespace dbms {
 
-    AccessLogger::AccessLogger(const std::string& filepath) : file_(filepath, std::ios::app) {
+
+    AccessLogger::AccessLogger(const std::string& filepath) {
+        std::filesystem::path path(filepath);
+        if (path.has_parent_path()) {
+            std::filesystem::create_directories(path.parent_path());
+        }
+
+        file_.open(filepath, std::ios::app);
         if (!file_.is_open()) {
             throw std::runtime_error("Cannot open log file: " + filepath);
         }
-        // Опционально:
         file_.seekp(0, std::ios::end);
         if (file_.tellp() == 0) {
             file_ << "# timestamp | session_id | handler_id | request | duration_ms | status\n";
         }
     }
-
     void AccessLogger::append(const LogRecord& rec) {
         std::lock_guard<std::mutex> lock(mutex_);
 

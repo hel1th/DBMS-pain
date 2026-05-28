@@ -4,6 +4,7 @@
 #include "engine/Executor.h"
 #include "logger/AccessLogger.h"
 #include "parser/SqlParser.h"
+#include "undo-log/UndoLogManager.h"
 
 namespace dbms {
 
@@ -19,9 +20,10 @@ namespace dbms {
                                 const std::string& sessionId = "default");
 
     private:
-        SqlParser parser_;
-        Executor executor_;
         AccessLogger logger_;
+        UndoLogManager undoLogManager_;
+        Executor executor_;
+        SqlParser parser_;
     };
 
 } // namespace dbms
