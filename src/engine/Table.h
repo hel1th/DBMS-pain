@@ -13,8 +13,8 @@
 class Table {
 public:
     Table() = default;
-    Table(const std::string& dbPath, const std::string& tableName);
-
+    Table(const std::string& dbPath, const Schema& schema);
+    
     // Создать новую таблицу
     static std::unique_ptr<Table> create(const std::string& dbPath, const Schema& schema);
 

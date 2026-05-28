@@ -93,23 +93,23 @@ QueryResult Executor::execDropTable(const DropTableQuery& q) {
     return {true, "", {}, 0};
 }
 
+
 QueryResult Executor::execInsert(const InsertQuery& q) {
     Database& db = currentDatabase();
     Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
-    int affected = 0;
 
+    int affected = 0;
     for (const auto& rowAst: q.values) {
-        // собираем запись размером schema.columns.size()
         std::vector<Value> record(schema.columns.size(), std::nullopt);
 
-        // заполняем переданные колонки
         for (size_t i = 0; i < q.columns.size(); i++) {
             int idx = schema.columnIndex(q.columns[i]);
-            if (idx == -1)
+            if (idx == -1) {
                 throw SemanticError("Unknown column: " + q.columns[i]);
-            // rowAst[i] всегда Literal*
+            }
+
             auto* lit = dynamic_cast<const Literal*>(rowAst[i].get());
             if (!lit)
                 throw SemanticError("Expected literal value in INSERT");

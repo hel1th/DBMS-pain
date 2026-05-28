@@ -150,7 +150,7 @@ select_item:
         SelectItem item;
         item.is_agg = false;
         item.col.name = $1;
-        item.col.alias = "$3";
+        item.col.alias = $3;
         $$ = item;
     }
   | aggregate_expr
