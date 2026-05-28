@@ -3,6 +3,7 @@
 #include <string>
 #include "engine/Executor.h"
 #include "logger/AccessLogger.h"
+#include "metrics/MetricsReporter.h"
 #include "parser/SqlParser.h"
 #include "undo-log/UndoLogManager.h"
 
@@ -24,6 +25,7 @@ namespace dbms {
         UndoLogManager undoLogManager_;
         Executor executor_;
         SqlParser parser_;
+        MetricsReporter reporter_{std::chrono::seconds(10)};
     };
 
 } // namespace dbms
