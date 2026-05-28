@@ -52,7 +52,7 @@ QueryResult Executor::execute(ASTNode* node) {
     }
 }
 
-//             exec funcs region
+//exec funcs region
 QueryResult Executor::execUse(const UseQuery& q) {
     if (!catalog_.hasDatabase(q.dbName))
         throw SemanticError("Database does not exist: " + q.dbName);
@@ -79,7 +79,9 @@ QueryResult Executor::execCreateTable(const CreateTableQuery& q) {
         def.type = col.type;
         def.notNull = col.notNull;
         def.indexed = col.indexed;
-        def.default_value = col.defaultValue;
+        if (col.defaultValue.has_value()) {
+            def.default_value = col.defaultValue;
+        }
         schema.columns.push_back(def);
     }
     db.createTable(schema);

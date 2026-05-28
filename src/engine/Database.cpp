@@ -14,9 +14,7 @@ void Database::createTable(const Schema& schema) {
     if (hasTable(schema.tableName))
         throw SemanticError("Table already exists: " + schema.tableName);
 
-    tables_[schema.tableName] = std::make_unique<Table>(
-        Table::create(dbPath_, schema)
-    );
+    tables_[schema.tableName] = Table::create(dbPath_, schema);
     saveSchema();
 }
 

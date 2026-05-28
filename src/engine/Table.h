@@ -12,10 +12,11 @@
 
 class Table {
 public:
+    Table() = default;
     Table(const std::string& dbPath, const std::string& tableName);
 
     // Создать новую таблицу
-    static Table create(const std::string& dbPath, const Schema& schema);
+    static std::unique_ptr<Table> create(const std::string& dbPath, const Schema& schema);
 
     // Удалить таблицу (файлы с диска)
     static void drop(const std::string& dbPath, const std::string& tableName);
@@ -34,7 +35,6 @@ public:
     std::vector<Value> fetch(RecordID rid);
 
 private:
-    Table() = default;
     Schema schema_;
     std::string dbPath_;
     std::unique_ptr<PageManager> pageManager_;

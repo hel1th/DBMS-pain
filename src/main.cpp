@@ -8,5 +8,6 @@ int main(int argc, char** argv) {
         testParser(2, const_cast<char**>(args));
     }
     TestExecutor();
+    testUndo();
     std::cout << "abababa" << std::endl;
 }
