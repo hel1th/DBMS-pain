@@ -52,6 +52,7 @@
 /* Приоритеты — от низкого к высокому */
 %left OR
 %left AND
+%left EQ NE LE GE LT GT LIKE 
 %nonassoc BETWEEN_PREC   /* псевдо-токен для %prec в правиле BETWEEN */
 
 /* Типы нетерминалов */
@@ -149,7 +150,7 @@ select_item:
         SelectItem item;
         item.is_agg = false;
         item.col.name = $1;
-        item.col.alias = "";
+        item.col.alias = "$3";
         $$ = item;
     }
   | aggregate_expr
@@ -244,6 +245,8 @@ and_condition:
 comparison:
     expr EQ expr
         { $$ = std::make_unique<BinaryOp>("==", std::move($1), std::move($3)); }
+    | expr ASSIGN expr
+        { $$ = std::make_unique<BinaryOp>("=", std::move($1), std::move($3)); }
     | expr NE expr
         { $$ = std::make_unique<BinaryOp>("!=", std::move($1), std::move($3)); }
     | expr LT expr
