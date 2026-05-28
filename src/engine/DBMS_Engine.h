@@ -1,0 +1,27 @@
+#pragma once
+
+#include <string>
+#include "engine/Executor.h"
+#include "logger/AccessLogger.h"
+#include "parser/SqlParser.h"
+
+namespace dbms {
+
+    class DBMSEngine {
+    public:
+        explicit DBMSEngine(const std::string& logFilePath = "data/access.log");
+        ~DBMSEngine() = default;
+
+        DBMSEngine(const DBMSEngine&) = delete;
+        DBMSEngine& operator=(const DBMSEngine&) = delete;
+
+        void processQueryBuffer(const std::string& queryText,
+                                const std::string& sessionId = "default");
+
+    private:
+        SqlParser parser_;
+        Executor executor_;
+        AccessLogger logger_;
+    };
+
+} // namespace dbms
