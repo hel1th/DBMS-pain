@@ -49,8 +49,8 @@ private:
 
     Value resolve(const ASTNode* node, const std::vector<Value>& record, const Schema& schema);
 
-    static Row project(const std::vector<Value>& record, const Schema& schema, const SelectQuery& q);
-
+    static Row project(const std::vector<Value>& record, const Schema& schema,
+                       const SelectQuery& q);
 };
 
 

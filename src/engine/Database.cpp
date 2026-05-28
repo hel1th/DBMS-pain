@@ -62,7 +62,7 @@ void Database::loadTables() {
             ss >> current.tableName;
             inTable = true;
         } else {
-            // колонка: name TYPE [INDEXED] [NOT_NULL] [DEFAULT value]
+            // колонка: name TYPE [INDEXED] [NOT NULL] [DEFAULT value]
             ColumnDef col;
             col.name = token;
 
@@ -73,7 +73,7 @@ void Database::loadTables() {
             std::string mod;
             while (ss >> mod) {
                 if (mod == "INDEXED")  col.indexed = true;
-                else if (mod == "NOT_NULL") col.notNull = true;
+                else if (mod == "NOT NULL") col.notNull = true;
                 else if (mod == "DEFAULT") {
                     std::string val;
                     ss >> val;
