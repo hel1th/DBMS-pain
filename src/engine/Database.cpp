@@ -1,12 +1,11 @@
 #include "Database.h"
-#include "utils/Error.h"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
+#include "utils/Error.h"
 
-Database::Database(const std::string& db_path, const std::string& name)
-    : name_(name), dbPath_(db_path)
-{
+Database::Database(const std::string& db_path, const std::string& name) :
+    name_(name), dbPath_(db_path) {
     loadTables();
 }
 
@@ -14,9 +13,7 @@ void Database::createTable(const Schema& schema) {
     if (hasTable(schema.tableName))
         throw SemanticError("Table already exists: " + schema.tableName);
 
-    tables_[schema.tableName] = std::make_unique<Table>(
-        Table::create(dbPath_, schema)
-    );
+    tables_[schema.tableName] = Table::create(dbPath_, schema);
     saveSchema();
 }
 
@@ -42,29 +39,30 @@ bool Database::hasTable(const std::string& name) const {
 
 void Database::loadTables() {
     std::ifstream f(dbPath_ + "/schema.dat");
-    if (!f.is_open()) return; // новая БД — таблиц ещё нет
+    if (!f.is_open())
+        return; // новая БД — таблиц ещё нет
 
     std::string line;
     Schema current;
     bool inTable = false;
 
     while (std::getline(f, line)) {
-        if (line.empty()) continue;
+        if (line.empty())
+            continue;
 
         std::istringstream ss(line);
         std::string token;
         ss >> token;
 
         if (token == "TABLE") {
-            if (inTable && !current.tableName.empty())
-                tables_[current.tableName] = std::make_unique<Table>(
-                    dbPath_, current.tableName
-                );
+            if (inTable && !current.tableName.empty()) {
+                tables_[current.tableName] = std::make_unique<Table>(dbPath_, current);
+            }
             current = Schema{};
             ss >> current.tableName;
             inTable = true;
         } else {
-            // колонка: name TYPE [INDEXED] [NOT_NULL] [DEFAULT value]
+            // колонка: name TYPE [INDEXED] [NOT NULL] [DEFAULT value]
             ColumnDef col;
             col.name = token;
 
@@ -74,8 +72,10 @@ void Database::loadTables() {
 
             std::string mod;
             while (ss >> mod) {
-                if (mod == "INDEXED")  col.indexed = true;
-                else if (mod == "NOT_NULL") col.notNull = true;
+                if (mod == "INDEXED")
+                    col.indexed = true;
+                else if (mod == "NOT NULL")
+                    col.notNull = true;
                 else if (mod == "DEFAULT") {
                     std::string val;
                     ss >> val;
@@ -95,9 +95,7 @@ void Database::loadTables() {
 
     // последняя таблица
     if (inTable && !current.tableName.empty())
-        tables_[current.tableName] = std::make_unique<Table>(
-            dbPath_, current.tableName
-        );
+        tables_[current.tableName] = std::make_unique<Table>(dbPath_, current);
 }
 
 void Database::saveSchema() {
@@ -105,13 +103,15 @@ void Database::saveSchema() {
     if (!f.is_open())
         throw StorageError("Cannot write schema.dat for: " + name_);
 
-    for (const auto& [name, tbl] : tables_) {
+    for (const auto& [name, tbl]: tables_) {
         f << "TABLE " << name << "\n";
-        for (const auto& col : tbl->schema().columns) {
+        for (const auto& col: tbl->schema().columns) {
             f << col.name << " ";
             f << (col.type == ColType::INT ? "INT" : "STRING");
-            if (col.indexed)  f << " INDEXED";
-            if (col.notNull)  f << " NOT_NULL";
+            if (col.indexed)
+                f << " INDEXED";
+            if (col.notNull)
+                f << " NOT NULL";
             if (col.default_value.has_value()) {
                 f << " DEFAULT ";
                 if (val::isInt(*col.default_value))

@@ -21,6 +21,7 @@ IDENT           {LETTER}({LETTER}|{DIGIT}|_)*
 INTEGER         {DIGIT}+
 STRING          \"([^\\\"]|\\.)*\"
 WHITESPACE      [ \t\r\n]+
+TIMESTAMP       [0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}
 
 %%
 
@@ -51,7 +52,7 @@ WHITESPACE      [ \t\r\n]+
 ("COUNT"|"count")       { return yy::parser::token::COUNT; }
 ("AVG"|"avg")           { return yy::parser::token::AVG; }
 ("DEFAULT"|"default")   { return yy::parser::token::DEFAULT; }
-("REVERT"|"revert") { return yy::parser::token::REVERT; }
+("REVERT"|"revert")     { return yy::parser::token::REVERT; }
 ("int"|"INT")           { return yy::parser::token::INT_TYPE; }
 ("string"|"STRING")     { return yy::parser::token::STRING_TYPE; }
 
@@ -92,7 +93,6 @@ WHITESPACE      [ \t\r\n]+
                     yylval->emplace<std::string>(yytext);
                     return yy::parser::token::IDENTIFIER;
                 }
-TIMESTAMP   [0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}
 {TIMESTAMP}     {
                     yylval->emplace<std::string>(yytext);
                     return yy::parser::token::TIMESTAMP;

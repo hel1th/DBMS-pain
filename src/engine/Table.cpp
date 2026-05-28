@@ -16,32 +16,32 @@ static std::string indexPath(const std::string& dbPath, const std::string& table
 
 // Загрузить схему из Database (schema уже передаётся снаружи)
 // Конструктор для открытия существующей таблицы
-Table::Table(const std::string& dbPath, const std::string& tableName) : dbPath_(dbPath) {
-    // schema будет заполнена через Database::loadTables
-    // здесь только открываем файлы
-    schema_.tableName = tableName;
-    pageManager_ = std::make_unique<PageManager>(dataPath(dbPath, tableName));
+// Конструктор для открытия существующей таблицы с готовой схемой
+Table::Table(const std::string& dbPath, const Schema& schema) :
+    schema_(schema), dbPath_(dbPath) // Сразу копируем схему целиком
+{
+    pageManager_ = std::make_unique<PageManager>(dataPath(dbPath, schema_.tableName));
     recordManager_ = std::make_unique<RecordManager>(*pageManager_, schema_);
 
-    // индекс — только если есть INDEXED колонка
+    // Индекс — только если есть INDEXED колонка
     int idxCol = schema_.indexedColumn();
     if (idxCol != -1) {
         indexManager_ = std::make_unique<IndexManager>(
-                indexPath(dbPath, tableName, schema_.columns[idxCol].name));
+                indexPath(dbPath, schema_.tableName, schema_.columns[idxCol].name));
     }
 }
 
 // Статический метод — создать новую таблицу
-Table Table::create(const std::string& dbPath, const Schema& schema) {
-    Table tbl;
-    tbl.schema_ = schema;
-    tbl.dbPath_ = dbPath;
-    tbl.pageManager_ = std::make_unique<PageManager>(dataPath(dbPath, schema.tableName));
-    tbl.recordManager_ = std::make_unique<RecordManager>(*tbl.pageManager_, tbl.schema_);
+std::unique_ptr<Table> Table::create(const std::string& dbPath, const Schema& schema) {
+    auto tbl = std::make_unique<Table>();
+    tbl->schema_ = schema;
+    tbl->dbPath_ = dbPath;
+    tbl->pageManager_ = std::make_unique<PageManager>(dataPath(dbPath, schema.tableName));
+    tbl->recordManager_ = std::make_unique<RecordManager>(*tbl->pageManager_, tbl->schema_);
 
     int idxCol = schema.indexedColumn();
     if (idxCol != -1) {
-        tbl.indexManager_ = std::make_unique<IndexManager>(
+        tbl->indexManager_ = std::make_unique<IndexManager>(
                 indexPath(dbPath, schema.tableName, schema.columns[idxCol].name));
     }
 

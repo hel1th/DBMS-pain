@@ -52,7 +52,7 @@ QueryResult Executor::execute(ASTNode* node) {
     }
 }
 
-//             exec funcs region
+// exec funcs region
 QueryResult Executor::execUse(const UseQuery& q) {
     if (!catalog_.hasDatabase(q.dbName))
         throw SemanticError("Database does not exist: " + q.dbName);
@@ -79,7 +79,9 @@ QueryResult Executor::execCreateTable(const CreateTableQuery& q) {
         def.type = col.type;
         def.notNull = col.notNull;
         def.indexed = col.indexed;
-        def.default_value = col.defaultValue;
+        if (col.defaultValue.has_value()) {
+            def.default_value = col.defaultValue;
+        }
         schema.columns.push_back(def);
     }
     db.createTable(schema);
@@ -91,23 +93,23 @@ QueryResult Executor::execDropTable(const DropTableQuery& q) {
     return {true, "", {}, 0};
 }
 
+
 QueryResult Executor::execInsert(const InsertQuery& q) {
     Database& db = currentDatabase();
     Table& tbl = db.getTable(q.tableName);
     const Schema& schema = tbl.schema();
 
-    int affected = 0;
 
+    int affected = 0;
     for (const auto& rowAst: q.values) {
-        // собираем запись размером schema.columns.size()
         std::vector<Value> record(schema.columns.size(), std::nullopt);
 
-        // заполняем переданные колонки
         for (size_t i = 0; i < q.columns.size(); i++) {
             int idx = schema.columnIndex(q.columns[i]);
-            if (idx == -1)
+            if (idx == -1) {
                 throw SemanticError("Unknown column: " + q.columns[i]);
-            // rowAst[i] всегда Literal*
+            }
+
             auto* lit = dynamic_cast<const Literal*>(rowAst[i].get());
             if (!lit)
                 throw SemanticError("Expected literal value in INSERT");
@@ -254,7 +256,7 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
         Row row;
         for (size_t i = 0; i < q.aggregates.size(); i++) {
             const auto& agg = q.aggregates[i];
-            std::string label = agg.func + "(" + agg.column + ")";
+            std::string label = agg.alias.empty() ? agg.func + "(" + agg.column + ")" : agg.alias;
             if (agg.func == "COUNT") {
                 row.emplace_back(label, Value(accs[i].count));
             } else if (agg.func == "SUM") {
@@ -356,7 +358,7 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
                 return false;
 
             // !(val < low) = (val >= low) = (low <= val)
-            return !valueLess(val, low) && valueLess(val, high);
+            return !valueLess(val, low) && !valueLess(high, val);
         }
         case NodeKind::LIKE_OP: {
             auto* n = dynamic_cast<const LikeOp*>(where);

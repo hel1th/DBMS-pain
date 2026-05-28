@@ -41,13 +41,19 @@
 %token FROM WHERE SET VALUE INTO AS
 %token AND OR BETWEEN LIKE NOT NULL_
 %token INDEXED SUM COUNT AVG DEFAULT
-%token REVERT TIMESTAMP
+%token REVERT
 %token EQ NE LE GE LT GT ASSIGN
 %token SEMICOLON COMMA LPAREN RPAREN STAR
 %token <int> INTEGER
-%token <std::string> STRING IDENTIFIER
+%token <std::string> STRING IDENTIFIER TIMESTAMP
 %token YYerror
 %token INT_TYPE STRING_TYPE
+
+/* Приоритеты — от низкого к высокому */
+%left OR
+%left AND
+%left EQ NE LE GE LT GT LIKE 
+%nonassoc BETWEEN_PREC   /* псевдо-токен для %prec в правиле BETWEEN */
 
 /* Типы нетерминалов */
 %type <std::unique_ptr<ASTNode>> query
@@ -154,6 +160,14 @@ select_item:
         item.agg = $1;
         $$ = item;
     }
+  | aggregate_expr AS IDENTIFIER
+    {
+        SelectItem item;
+        item.is_agg = true;
+        item.agg = std::move($1);
+        item.agg.alias = $3;
+        $$ = std::move(item);
+    }
 ;
 
 aggregate_expr:
@@ -162,6 +176,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "COUNT";
         agg.column = "*";
+        agg.alias = "";
         $$ = agg;
     }
   | SUM LPAREN column_name_or_star RPAREN
@@ -169,6 +184,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "SUM";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
   | COUNT LPAREN column_name_or_star RPAREN
@@ -176,6 +192,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "COUNT";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
   | AVG LPAREN column_name_or_star RPAREN
@@ -183,6 +200,7 @@ aggregate_expr:
         AggregateExpr agg;
         agg.func = "AVG";
         agg.column = $3;
+        agg.alias = "";
         $$ = agg;
     }
 ;
@@ -227,6 +245,8 @@ and_condition:
 comparison:
     expr EQ expr
         { $$ = std::make_unique<BinaryOp>("==", std::move($1), std::move($3)); }
+    | expr ASSIGN expr
+        { $$ = std::make_unique<BinaryOp>("=", std::move($1), std::move($3)); }
     | expr NE expr
         { $$ = std::make_unique<BinaryOp>("!=", std::move($1), std::move($3)); }
     | expr LT expr
@@ -237,7 +257,7 @@ comparison:
         { $$ = std::make_unique<BinaryOp>("<=", std::move($1), std::move($3)); }
     | expr GE expr
         { $$ = std::make_unique<BinaryOp>(">=", std::move($1), std::move($3)); }
-    | expr BETWEEN expr AND expr
+    | expr BETWEEN expr AND expr %prec BETWEEN_PREC
         { $$ = std::make_unique<BetweenOp>(std::move($1), std::move($3), std::move($5)); }
     | expr LIKE expr
         { $$ = std::make_unique<LikeOp>(std::move($1), std::move($3)); }
@@ -449,7 +469,7 @@ use_stmt:
 revert_stmt:
     REVERT IDENTIFIER TIMESTAMP
     {
-        $$ = std::make_unique<RevertQuery>($2, $3);
+         $$ = std::make_unique<RevertQuery>(std::move($2), std::move($3));
     }
 ;
 

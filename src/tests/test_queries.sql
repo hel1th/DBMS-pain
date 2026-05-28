@@ -36,12 +36,12 @@ SELECT ID, DEPARTMENT FROM employees; -- валидно (верхний реги
 -- РАЗДЕЛ 5: WHERE, СРАВНЕНИЯ И ПРИОРИТЕТЫ (AND > OR)
 -- Числовые и лексикографические сравнения
 SELECT * FROM employees WHERE salary > 65000;
-SELECT * FROM employees WHERE id == 1;
+SELECT * FROM employees WHERE id = 1;
 SELECT * FROM employees WHERE name >= "Alice" AND name < "Dave";
 -- Приоритет AND над OR без скобок
-SELECT * FROM employees WHERE department == "HR" OR department == "IT" AND salary > 60000;
+SELECT * FROM employees WHERE department = "HR" OR department = "IT" AND salary > 60000;
 -- Явное управление приоритетом скобками
-SELECT * FROM employees WHERE (department == "HR" OR department == "IT") AND salary > 60000;
+SELECT * FROM employees WHERE (department = "HR" OR department = "IT") AND salary > 60000;
 
 -- РАЗДЕЛ 6: BETWEEN И LIKE (REGEX)
 -- BETWEEN: полуоткрытый интервал [start, end)
@@ -53,15 +53,15 @@ SELECT * FROM employees WHERE name LIKE ".*li.*";
 
 -- РАЗДЕЛ 7: АГРЕГАТНЫЕ ФУНКЦИИ
 SELECT COUNT() FROM employees;
-SELECT COUNT(id) FROM employees WHERE department == "IT";
-SELECT SUM(salary) FROM employees WHERE department == "HR";
+SELECT COUNT(id) FROM employees WHERE department = "IT";
+SELECT SUM(salary) FROM employees WHERE department = "HR";
 SELECT AVG(salary) FROM employees;
 -- Несколько агрегатов в одном запросе
-SELECT COUNT(), SUM(salary), AVG(salary) FROM employees WHERE status == "active";
+SELECT COUNT(), SUM(salary), AVG(salary) FROM employees WHERE status = "active";
 
 -- РАЗДЕЛ 8: UPDATE И DELETE
-UPDATE employees SET salary = 72000 WHERE id == 1;
-UPDATE employees SET status = "inactive", department = "Archive" WHERE id == 3;
+UPDATE employees SET salary = 72000 WHERE id = 1;
+UPDATE employees SET status = "inactive", department = "Archive" WHERE id = 3;
 DELETE FROM employees WHERE id > 4;
 
 -- РАЗДЕЛ 9: МНОГОСТРОЧНОСТЬ И ФОРМАТИРОВАНИЕ
@@ -70,11 +70,11 @@ SELECT
     name AS emp_name,
     salary AS monthly_pay
 FROM employees
-WHERE department == "IT"
+WHERE department = "IT"
 AND salary BETWEEN 50000 AND 80000;
 
 -- Игнорирование лишних пробелов/табуляций
-SELECT  *  FROM   employees   WHERE   id == 1   ;
+SELECT  *  FROM   employees   WHERE   id = 1   ;
 
 -- НЕГАТИВНЫЕ ТЕСТЫ (ДОЛЖНЫ ВЫЗЫВАТЬ ОШИБКУ ПАРСИНГА)
 
@@ -94,6 +94,6 @@ CREATE TABLE t (id int UNIQUE);
 SELECT department, COUNT() FROM employees GROUP BY department;
 
 -- ОШИБКА: Пропущено условие в UPDATE
-UPDATE employees SET salary WHERE id == 1;
+UPDATE employees SET salary WHERE id = 1;
 
 -- КОНЕЦ ТЕСТОВ
