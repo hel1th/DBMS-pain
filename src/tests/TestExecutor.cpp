@@ -6,7 +6,7 @@
 #include "engine/Executor.h"
 #include "parser/SqlParser.h"
 
-// ---------- вспомогательные функции для работы с результатами ----------
+//  вспомогательные функции для работы с результатами
 static Value getValue(const Row& row, const std::string& colName) {
     for (const auto& [name, val]: row) {
         if (name == colName)
@@ -23,7 +23,7 @@ static int asInt(const Value& v) {
     return 0;
 }
 
-// ---------- тестовая инфраструктура с выводом ----------
+//  тестовая инфраструктура с выводом
 static int tests_passed = 0;
 static int tests_failed = 0;
 
@@ -52,7 +52,7 @@ static QueryResult run(Executor& ex, SqlParser& parser, const std::string& sql) 
     return ex.execute(node.get());
 }
 
-// ---------- базовый тест ----------
+//  базовый тест
 void testBasic() {
     std::cout << "\n=== testBasic ===" << std::endl;
     std::filesystem::remove_all("./data/testdb");
@@ -78,7 +78,7 @@ void testBasic() {
     std::cout << "=== testBasic PASSED ===" << std::endl;
 }
 
-// ---------- тест логических выражений (AND/OR, скобки, BETWEEN, LIKE) ----------
+//  тест логических выражений (AND/OR, скобки, BETWEEN, LIKE)
 void testLogicalExpressions() {
     std::cout << "\n=== testLogicalExpressions ===" << std::endl;
     std::filesystem::remove_all("./data/testdb_logic");
@@ -158,7 +158,7 @@ void testLogicalExpressions() {
     std::cout << "=== testLogicalExpressions PASSED ===" << std::endl;
 }
 
-// ---------- тест агрегатных функций ----------
+//  тест агрегатных функций
 void testAggregateFunctions() {
     std::cout << "\n=== testAggregateFunctions ===" << std::endl;
     std::filesystem::remove_all("./data/testdb_agg");
@@ -228,7 +228,7 @@ void testAggregateFunctions() {
     std::cout << "=== testAggregateFunctions PASSED ===" << std::endl;
 }
 
-// ---------- тест больших данных (500 строк) ----------
+//  тест больших данных (500 строк)
 void testLargeData() {
     std::cout << "\n=== testLargeData (500 rows) ===" << std::endl;
     std::filesystem::remove_all("./data/testdb_large");
@@ -326,7 +326,6 @@ void testLargeData() {
     std::cout << "=== testLargeData PASSED ===" << std::endl;
 }
 
-// ---------- точка входа ----------
 int TestExecutor() {
     try {
         testBasic();
@@ -344,7 +343,7 @@ int TestExecutor() {
 }
 
 
-// helper
+// // helper
 // void printAST(const ASTNode* node, int depth = 0) {
 //     if (!node) {
 //         std::cerr << std::string(depth * 2, ' ') << "NULL\n";
