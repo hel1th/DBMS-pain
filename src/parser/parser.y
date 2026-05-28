@@ -49,6 +49,11 @@
 %token YYerror
 %token INT_TYPE STRING_TYPE
 
+/* Приоритеты — от низкого к высокому */
+%left OR
+%left AND
+%nonassoc BETWEEN_PREC   /* псевдо-токен для %prec в правиле BETWEEN */
+
 /* Типы нетерминалов */
 %type <std::unique_ptr<ASTNode>> query
 %type <std::unique_ptr<ASTNode>> select_stmt insert_stmt update_stmt delete_stmt
@@ -237,7 +242,7 @@ comparison:
         { $$ = std::make_unique<BinaryOp>("<=", std::move($1), std::move($3)); }
     | expr GE expr
         { $$ = std::make_unique<BinaryOp>(">=", std::move($1), std::move($3)); }
-    | expr BETWEEN expr AND expr
+    | expr BETWEEN expr AND expr %prec BETWEEN_PREC
         { $$ = std::make_unique<BetweenOp>(std::move($1), std::move($3), std::move($5)); }
     | expr LIKE expr
         { $$ = std::make_unique<LikeOp>(std::move($1), std::move($3)); }

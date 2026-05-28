@@ -6,7 +6,6 @@
 
 class ASTNode;
 class SqlParser {
-
 public:
     SqlParser();
     ~SqlParser();

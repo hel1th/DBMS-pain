@@ -52,7 +52,7 @@ QueryResult Executor::execute(ASTNode* node) {
     }
 }
 
-//exec funcs region
+// exec funcs region
 QueryResult Executor::execUse(const UseQuery& q) {
     if (!catalog_.hasDatabase(q.dbName))
         throw SemanticError("Database does not exist: " + q.dbName);
@@ -256,7 +256,7 @@ QueryResult Executor::execSelect(const SelectQuery& q) {
         Row row;
         for (size_t i = 0; i < q.aggregates.size(); i++) {
             const auto& agg = q.aggregates[i];
-            std::string label = agg.func + "(" + agg.column + ")";
+            std::string label = agg.alias.empty() ? agg.func + "(" + agg.column + ")" : agg.alias;
             if (agg.func == "COUNT") {
                 row.emplace_back(label, Value(accs[i].count));
             } else if (agg.func == "SUM") {
@@ -358,7 +358,7 @@ bool Executor::matches(const std::vector<Value>& record, const Schema& schema,
                 return false;
 
             // !(val < low) = (val >= low) = (low <= val)
-            return !valueLess(val, low) && valueLess(val, high);
+            return !valueLess(val, low) && !valueLess(high, val);
         }
         case NodeKind::LIKE_OP: {
             auto* n = dynamic_cast<const LikeOp*>(where);

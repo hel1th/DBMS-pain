@@ -121,6 +121,7 @@ struct SelectColumn {
 struct AggregateExpr {
     std::string func; // "SUM", "COUNT", "AVG"
     std::string column; // имя колонки или "*" для COUNT(*)
+    std::string alias; // пустая строка = нет алиаса
 };
 
 class SelectQuery : public ASTNode {
