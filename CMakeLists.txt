@@ -70,6 +70,10 @@ add_executable(DBMS_pain
     ${BISON_SqlParser_OUTPUTS}
     ${FLEX_SqlLexer_OUTPUTS}
     src/tests/TestExecutor.cpp
+    src/metrics/MetricsReporter.cpp
+    src/metrics/ExponentialMovingAverage.cpp
+    src/metrics/MetricsCollector.cpp
+    src/metrics/RollingCounter.cpp
 )
 
 

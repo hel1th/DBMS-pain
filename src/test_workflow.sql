@@ -20,10 +20,10 @@ SELECT * FROM employees WHERE name LIKE ".*popa.*";
 
 SELECT * FROM employees WHERE salary BETWEEN 45000 AND 70000;
 
-UPDATE employees SET salary = 65000 WHERE id == 4;
+UPDATE employees SET salary = 65000 WHERE id = 4;
 
-SELECT * FROM employees WHERE id == 4;
+SELECT * FROM employees WHERE id = 4;
 
-DELETE FROM employees WHERE id == 3;
+DELETE FROM employees WHERE id = 3;
 
 SELECT * FROM employees;
