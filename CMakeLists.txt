@@ -63,6 +63,8 @@ add_executable(DBMS_pain
     src/engine/Table.cpp
     src/engine/Database.cpp
     src/engine/Executor.cpp
+    src/engine/DBMS_Engine.cpp
+    src/logger/AccessLogger.cpp
     src/index/src/BStarPlusTree.cpp
     src/index/src/IndexManager.cpp
     src/index/src/pp_allocator.cpp

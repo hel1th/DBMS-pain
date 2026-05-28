@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 #include "Table.h"
-#include "utils/Error.h"
 
 
 class Database {
