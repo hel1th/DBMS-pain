@@ -449,7 +449,7 @@ use_stmt:
 revert_stmt:
     REVERT IDENTIFIER TIMESTAMP
     {
-        $$ = std::make_unique<RevertQuery>($2, $3);
+         $$ = std::make_unique<RevertQuery>(std::move($2), std::move($3));
     }
 ;
 
