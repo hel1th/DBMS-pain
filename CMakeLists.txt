@@ -59,7 +59,6 @@ add_executable(DBMS_pain
     src/storage/PageManager.cpp
     src/storage/UndoLogManager.cpp
     src/catalog/SystemCatalog.cpp
-    src/engine/Schema.cpp
     src/engine/Table.cpp
     src/engine/Database.cpp
     src/engine/Executor.cpp
