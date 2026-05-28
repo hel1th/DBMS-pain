@@ -2,6 +2,7 @@
 #include "tests/TestModules.h"
 
 int main(int argc, char** argv) {
+    std::cout << "abababa" << std::endl;
     if (argc == 2) {
         testUndo();
         const char* args[] = {"dbms", "src/tests/test_queries.sql"};
