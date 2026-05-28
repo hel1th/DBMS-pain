@@ -1,7 +1,7 @@
-#include "../include/ExponentialMovingAverage.h"
+#include "metrics/ExponentialMovingAverage.h"
 
-ExponentialMovingAverage::ExponentialMovingAverage(double alpha)
-    : alpha_(alpha), initialized_(false), value_(0.0) {}
+ExponentialMovingAverage::ExponentialMovingAverage(double alpha) :
+    alpha_(alpha), initialized_(false), value_(0.0) {}
 
 void ExponentialMovingAverage::add(double value) {
     std::lock_guard<std::mutex> lock(mutex_);

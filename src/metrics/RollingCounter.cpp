@@ -1,4 +1,4 @@
-#include "../include/RollingCounter.h"
+#include "metrics/RollingCounter.h"
 
 void RollingCounter::add() {
     auto now = Clock::now();
@@ -33,9 +33,9 @@ void RollingCounter::reset() {
 
 void RollingCounter::cleanup(const TimePoint& now) const {
     auto cutoff = now - windowSize_;
-    auto it = std::remove_if(timestamps_.begin(), timestamps_.end(),
-        [cutoff](const TimePoint& tp) { return tp <= cutoff; });
-    timestamps_.erase(it, timestamps_.end());
+    timestamps_.erase(std::remove_if(timestamps_.begin(), timestamps_.end(),
+                                     [cutoff](const TimePoint& tp) { return tp <= cutoff; }),
+                      timestamps_.end());
 }
 
 void RollingCounter::updateMaxInternal(const TimePoint& now) {

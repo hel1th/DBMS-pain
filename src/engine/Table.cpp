@@ -14,9 +14,7 @@ static std::string indexPath(const std::string& dbPath, const std::string& table
     return dbPath + "/" + tableName + "_" + colName + ".idx";
 }
 
-// Загрузить схему из Database (schema уже передаётся снаружи)
-// Конструктор для открытия существующей таблицы
-// Конструктор для открытия существующей таблицы с готовой схемой
+
 Table::Table(const std::string& dbPath, const Schema& schema) :
     schema_(schema), dbPath_(dbPath) // Сразу копируем схему целиком
 {
