@@ -14,7 +14,6 @@ namespace dbms {
         explicit AccessLogger(const std::string& filepath);
         ~AccessLogger() = default;
 
-        // Запрещаем копирование, разрешаем перемещение
         AccessLogger(const AccessLogger&) = delete;
         AccessLogger& operator=(const AccessLogger&) = delete;
         AccessLogger(AccessLogger&&) = delete;
