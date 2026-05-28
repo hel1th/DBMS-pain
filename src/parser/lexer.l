@@ -21,6 +21,7 @@ IDENT           {LETTER}({LETTER}|{DIGIT}|_)*
 INTEGER         {DIGIT}+
 STRING          \"([^\\\"]|\\.)*\"
 WHITESPACE      [ \t\r\n]+
+TIMESTAMP       [0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}
 
 %%
 
@@ -92,7 +93,6 @@ WHITESPACE      [ \t\r\n]+
                     yylval->emplace<std::string>(yytext);
                     return yy::parser::token::IDENTIFIER;
                 }
-TIMESTAMP       [0-9]{4}\.[0-9]{2}\.[0-9]{2}-[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}
 {TIMESTAMP}     {
                     yylval->emplace<std::string>(yytext);
                     return yy::parser::token::TIMESTAMP;
