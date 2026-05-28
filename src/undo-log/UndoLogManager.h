@@ -1,4 +1,4 @@
-#ifndef DBMS_PAIN_UNDOLOGMANAGER_h
+#ifndef DBMS_PAIN_UNDOLOGMANAGER_H
 #define DBMS_PAIN_UNDOLOGMANAGER_H
 #include <cstdint>
 #include <fstream>

@@ -57,7 +57,7 @@ add_executable(DBMS_pain
     src/storage/Serializer.cpp
     src/storage/RecordManager.cpp
     src/storage/PageManager.cpp
-    src/storage/UndoLogManager.cpp
+    src/undo-log/UndoLogManager.cpp
     src/catalog/SystemCatalog.cpp
     src/engine/Table.cpp
     src/engine/Database.cpp

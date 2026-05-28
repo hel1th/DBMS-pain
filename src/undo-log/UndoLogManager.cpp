@@ -1,4 +1,4 @@
-#include "storage/UndoLogManager.h"
+#include "undo-log/UndoLogManager.h"
 #include "utils/Error.h"
 #include <filesystem>
 
@@ -8,12 +8,17 @@ UndoLogManager::UndoLogManager(const std::string &LogfilePath)
 
   std::filesystem::path path(LogfilePath);
 
+  if (path.has_parent_path()) {
+    std::filesystem::create_directories(path.parent_path());
+  }
+
   if (!std::filesystem::exists(path)) {
     std::ofstream file(LogfilePath, std::ios::binary);
     if (!file.is_open()) {
-      throw UndoLogError("Failed to create log file:" + this->filePath_);
+      throw UndoLogError("Failed to create log file: " + this->filePath_);
     }
   }
+
   this->logFile_.open(LogfilePath,
                       std::ios::in | std::ios::out | std::ios::binary);
   if (!this->logFile_.is_open()) {
@@ -51,7 +56,7 @@ UndoLogManager::getRecordsToRevert(const std::string &tableName,
   file.seekg(0, std::ios::end);
   std::streampos currentPos = file.tellg();
 
-  while (currentPos > 0) {
+  while (currentPos >= static_cast<std::streamoff>(sizeof(uint32_t))) {
     file.seekg(currentPos - static_cast<std::streamoff>(sizeof(uint32_t)));
 
     uint32_t recordSize = 0;
@@ -124,6 +129,12 @@ void UndoLogManager::truncateLog(uint64_t timeMs) {
 
   this->logFile_.open(this->filePath_,
                       std::ios::in | std::ios::out | std::ios::binary);
+
+  if (!this->logFile_.is_open()) {
+    throw UndoLogError("Failed to reopen log file after truncate");
+  }
+
+  this->logFile_.clear();
 }
 
 void UndoLogManager::writeBinaryString(std::ostream &out,
