@@ -141,6 +141,7 @@ void testLogicalExpressions() {
 
     // UPDATE с составным условием
     r = run(ex, parser, "UPDATE people SET salary = 9999 WHERE age >= 30 AND age <= 35;");
+    std::cerr << "ok: " << r.ok << " affected: " << r.affected << " error: " << r.error << "\n";
     TEST_TRUE(r.ok && r.affected == 2, "UPDATE with AND: age between 30 and 35 -> 2 rows affected");
     r = run(ex, parser, "SELECT salary FROM people WHERE name = \"Bob\";");
     TEST_TRUE(r.ok && asInt(getValue(r.rows[0], "salary")) == 9999, "Bob salary updated to 9999");
@@ -208,8 +209,8 @@ void testAggregateFunctions() {
 
 
     // алиасы
-    r = run(ex, parser, "SELECT SUM(quantity) AS total_qty, AVG(price) AS avg_price FROM sales;"); 
-    TEST_TRUE(r.ok, "Aggregates with AS"); 
+    r = run(ex, parser, "SELECT SUM(quantity) AS total_qty, AVG(price) AS avg_price FROM sales;");
+    TEST_TRUE(r.ok, "Aggregates with AS");
     TEST_EQUAL_INT(asInt(getValue(r.rows[0], "total_qty")), 11, "SUM(quantity) AS total_qty = 11");
     TEST_EQUAL_INT(asInt(getValue(r.rows[0], "avg_price")), 137, "AVG(price) AS avg_price = 137");
 

@@ -5,9 +5,9 @@ int main(int argc, char** argv) {
     std::cout << "abababa" << std::endl;
     if (argc == 2) {
         testUndo();
-        const char* args[] = {"dbms", "../src/tests/test_queries.sql"};
-        testParser(2, const_cast<char**>(args));
     }
     TestExecutor();
+    const char* args[] = {"dbms", "../src/tests/test_queries.sql"};
+    testParser(2, const_cast<char**>(args));
     std::cout << "abababa" << std::endl;
 }
